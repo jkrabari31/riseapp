@@ -31,6 +31,7 @@ const TeacherContribution = lazy(() => import('./pages/TeacherContribution.tsx')
 const SchedulerGrid = lazy(() => import('./pages/SchedulerGrid'));
 const ReportingDashboard = lazy(() => import('./pages/ReportingDashboard'));
 const ExportReports = lazy(() => import('./pages/ExportReports'));
+const ReadingMaterials = lazy(() => import('./pages/ReadingMaterials.tsx'));
 
 // Minimal loading fallback
 const PageLoader = () => (
@@ -79,6 +80,7 @@ function App() {
             <Route path="scheduler" element={<SchedulerGrid />} />
             <Route path="reports" element={<ReportingDashboard />} />
             <Route path="export" element={<ExportReports />} />
+            <Route path="reading-materials" element={<ReadingMaterials />} />
             <Route path="settings" element={<Settings />} />
             <Route path="*" element={<Dashboard />} />
           </Route>

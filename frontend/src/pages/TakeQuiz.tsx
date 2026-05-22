@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Timer, ChevronRight, ChevronLeft, CheckCircle, ClipboardList,
-    Lock, AlertTriangle, Maximize, BookOpen, Clock, Shield, Star
+    Lock, AlertTriangle, Maximize, BookOpen, Clock, Shield, Star,
+    ListChecks, XCircle, Eye
 } from 'lucide-react';
 import api from '../utils/api';
 
@@ -95,6 +96,12 @@ export default function TakeQuiz() {
     // New Secure Assessment State
     const [showInstructions, setShowInstructions] = useState(false);
     const [hasAgreed, setHasAgreed] = useState(false);
+
+    // Review pending panel (during the assessment)
+    const [showPendingReview, setShowPendingReview] = useState(false);
+
+    // Answer review after submission
+    const [showAnswerReview, setShowAnswerReview] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [cameraError, setCameraError] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -186,9 +193,9 @@ export default function TakeQuiz() {
     useEffect(() => { fetchChildren(); }, []);
     useEffect(() => { if (selectedChild) fetchQuizzes(selectedChild); }, [selectedChild]);
 
-    // Countdown timer
+    // Countdown timer — starts once instructions are dismissed and timeLeft has been seeded
     useEffect(() => {
-        if (activeQuiz && timeLeft > 0 && !submitted) {
+        if (activeQuiz && !showInstructions && timeLeft > 0 && !submitted) {
             timerRef.current = setInterval(() => {
                 setTimeLeft(prev => {
                     if (prev <= 1) {
@@ -201,7 +208,7 @@ export default function TakeQuiz() {
             }, 1000);
         }
         return () => clearInterval(timerRef.current);
-    }, [activeQuiz, submitted]);
+    }, [activeQuiz, submitted, showInstructions]);
 
     const fetchChildren = async () => {
         try {
@@ -608,24 +615,105 @@ export default function TakeQuiz() {
                         </div>
                     </div>
 
-                    {currentQ < questions.length - 1 ? (
-                        <button
-                            onClick={() => setCurrentQ(prev => prev + 1)}
-                            disabled={answers[currentQ] === null}
-                            className="flex items-center gap-2 px-8 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-black disabled:opacity-30 shadow-lg shadow-indigo-600/20 transition-all"
-                        >
-                            Next <ChevronRight size={20} />
-                        </button>
-                    ) : (
-                        <button
-                            onClick={handleSubmit}
-                            disabled={submitting || answers.includes(null)}
-                            className="flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-black disabled:opacity-30 shadow-lg shadow-emerald-500/20 transition-all"
-                        >
-                            <CheckCircle size={20} />
-                            {submitting ? 'Submitting...' : 'Submit Assessment'}
-                        </button>
-                    )}
+                    <div className="flex items-center gap-3">
+                        {answers.includes(null) && (
+                            <button
+                                onClick={() => setShowPendingReview(true)}
+                                className="flex items-center gap-2 px-5 py-3 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl hover:bg-amber-100 font-black text-sm transition-all"
+                            >
+                                <ListChecks size={18} />
+                                Review Pending ({answers.filter(a => a === null).length})
+                            </button>
+                        )}
+
+                        {currentQ < questions.length - 1 ? (
+                            <button
+                                onClick={() => setCurrentQ(prev => prev + 1)}
+                                className="flex items-center gap-2 px-8 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-black shadow-lg shadow-indigo-600/20 transition-all"
+                            >
+                                {answers[currentQ] === null ? 'Skip' : 'Next'} <ChevronRight size={20} />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleSubmit}
+                                disabled={submitting || answers.includes(null)}
+                                title={answers.includes(null) ? 'Answer all questions before submitting' : ''}
+                                className="flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-black disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 transition-all"
+                            >
+                                <CheckCircle size={20} />
+                                {submitting ? 'Submitting...' : 'Submit Assessment'}
+                            </button>
+                        )}
+                    </div>
+
+                    {/* ── REVIEW PENDING MODAL ─────────────────────────── */}
+                    <AnimatePresence>
+                        {showPendingReview && (
+                            <div
+                                className="fixed inset-0 z-[260] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6"
+                                onClick={() => setShowPendingReview(false)}
+                            >
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden"
+                                >
+                                    <div className="bg-amber-500 px-7 py-5 flex items-center gap-3">
+                                        <ListChecks className="text-white" size={22} />
+                                        <div>
+                                            <h2 className="text-lg font-black text-white">Unanswered Questions</h2>
+                                            <p className="text-amber-100 text-xs font-bold">
+                                                {answers.filter(a => a === null).length} of {questions.length} still pending
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="p-6 max-h-[60vh] overflow-y-auto">
+                                        {answers.filter(a => a === null).length === 0 ? (
+                                            <p className="text-center text-emerald-600 font-bold py-6">
+                                                All questions answered. You can submit now.
+                                            </p>
+                                        ) : (
+                                            <div className="grid grid-cols-1 gap-2">
+                                                {answers.map((a, i) =>
+                                                    a === null ? (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => {
+                                                                setCurrentQ(i);
+                                                                setShowPendingReview(false);
+                                                            }}
+                                                            className="flex items-center justify-between gap-3 p-4 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-2xl text-left transition-all group"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="w-9 h-9 bg-amber-500 text-white rounded-xl flex items-center justify-center font-black text-sm">
+                                                                    {i + 1}
+                                                                </span>
+                                                                <span className="text-sm font-semibold text-slate-700 line-clamp-2">
+                                                                    {questions[i]?.question?.slice(0, 80) || 'Question'}
+                                                                    {questions[i]?.question?.length > 80 ? '…' : ''}
+                                                                </span>
+                                                            </div>
+                                                            <ChevronRight size={18} className="text-amber-600 group-hover:translate-x-1 transition-transform shrink-0" />
+                                                        </button>
+                                                    ) : null
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                                        <button
+                                            onClick={() => setShowPendingReview(false)}
+                                            className="px-5 py-2 bg-slate-900 hover:bg-black text-white rounded-xl font-black text-sm transition-all"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
         );
@@ -698,14 +786,138 @@ export default function TakeQuiz() {
                             </div>
                         </div>
 
-                        <button
-                            onClick={() => { setActiveQuiz(null); setSubmitted(false); }}
-                            className="w-full py-4 bg-slate-900 hover:bg-indigo-600 text-white rounded-2xl font-black text-lg transition-all shadow-xl"
-                        >
-                            Return to Assessments
-                        </button>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button
+                                onClick={() => setShowAnswerReview(true)}
+                                className="py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-base transition-all shadow-xl flex items-center justify-center gap-2"
+                            >
+                                <Eye size={18} /> Review Answers
+                            </button>
+                            <button
+                                onClick={() => { setActiveQuiz(null); setSubmitted(false); setShowAnswerReview(false); }}
+                                className="py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-black text-base transition-all shadow-xl"
+                            >
+                                Return to Assessments
+                            </button>
+                        </div>
                     </div>
                 </motion.div>
+
+                {/* ── ANSWER REVIEW PANEL — shows each question with student's pick vs correct ─── */}
+                <AnimatePresence>
+                    {showAnswerReview && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[260] bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4 md:p-8"
+                            onClick={() => setShowAnswerReview(false)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.95, y: 20 }}
+                                animate={{ scale: 1, y: 0 }}
+                                exit={{ scale: 0.95 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+                            >
+                                <div className="bg-indigo-600 px-8 py-5 flex items-center justify-between shrink-0">
+                                    <div>
+                                        <h2 className="text-xl font-black text-white">Answer Review</h2>
+                                        <p className="text-indigo-100 text-xs font-bold mt-0.5">
+                                            {result.score} correct · {result.total - result.score} incorrect · {result.total} total
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowAnswerReview(false)}
+                                        className="p-2 hover:bg-white/10 rounded-xl text-white transition-all"
+                                    >
+                                        <XCircle size={22} />
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-5">
+                                    {questions.map((q: any, i: number) => {
+                                        const userPick = answers[i];
+                                        const correct = q.correctIndex;
+                                        const isCorrect = userPick === correct;
+                                        const wasSkipped = userPick === null || userPick === -1;
+                                        return (
+                                            <div
+                                                key={i}
+                                                className={`rounded-2xl border-2 p-5 ${
+                                                    isCorrect
+                                                        ? 'border-emerald-200 bg-emerald-50/40'
+                                                        : 'border-rose-200 bg-rose-50/40'
+                                                }`}
+                                            >
+                                                <div className="flex items-start gap-3 mb-4">
+                                                    <span
+                                                        className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-black text-sm text-white ${
+                                                            isCorrect ? 'bg-emerald-500' : 'bg-rose-500'
+                                                        }`}
+                                                    >
+                                                        {i + 1}
+                                                    </span>
+                                                    <div className="flex-1">
+                                                        <p className="font-bold text-slate-800 leading-relaxed">{q.question}</p>
+                                                    </div>
+                                                    <span
+                                                        className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
+                                                            isCorrect
+                                                                ? 'bg-emerald-500 text-white'
+                                                                : 'bg-rose-500 text-white'
+                                                        }`}
+                                                    >
+                                                        {isCorrect ? 'Correct' : wasSkipped ? 'Skipped' : 'Wrong'}
+                                                    </span>
+                                                </div>
+                                                <div className="space-y-2 ml-11">
+                                                    {q.options.map((opt: string, optIdx: number) => {
+                                                        const isUserPick = userPick === optIdx;
+                                                        const isCorrectOpt = correct === optIdx;
+                                                        return (
+                                                            <div
+                                                                key={optIdx}
+                                                                className={`flex items-center gap-3 p-3 rounded-xl border ${
+                                                                    isCorrectOpt
+                                                                        ? 'border-emerald-400 bg-emerald-100/70'
+                                                                        : isUserPick
+                                                                        ? 'border-rose-400 bg-rose-100/70'
+                                                                        : 'border-slate-200 bg-white'
+                                                                }`}
+                                                            >
+                                                                <span
+                                                                    className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs ${
+                                                                        isCorrectOpt
+                                                                            ? 'bg-emerald-500 text-white'
+                                                                            : isUserPick
+                                                                            ? 'bg-rose-500 text-white'
+                                                                            : 'bg-slate-100 text-slate-500'
+                                                                    }`}
+                                                                >
+                                                                    {String.fromCharCode(65 + optIdx)}
+                                                                </span>
+                                                                <span className="text-sm font-medium text-slate-700 flex-1">{opt}</span>
+                                                                {isCorrectOpt && (
+                                                                    <span className="text-[10px] font-black text-emerald-700 uppercase">Correct</span>
+                                                                )}
+                                                                {isUserPick && !isCorrectOpt && (
+                                                                    <span className="text-[10px] font-black text-rose-700 uppercase">Your answer</span>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {wasSkipped && (
+                                                        <p className="text-xs font-bold text-rose-600 mt-2 italic">You did not answer this question.</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         );
     }

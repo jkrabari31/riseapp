@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Send, BookOpen, ClipboardList, Users, Star, X, Pencil, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Send, BookOpen, ClipboardList, Users, Star, X, Pencil, Sparkles, Loader2, Eye, ChevronLeft } from 'lucide-react';
 import api from '../utils/api';
 
 interface MCQQuestion {
@@ -19,6 +19,7 @@ export default function QuizBuilder() {
     const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
     const [results, setResults] = useState<any[]>([]);
     const [showResults, setShowResults] = useState(false);
+    const [selectedSubmission, setSelectedSubmission] = useState<any | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
@@ -452,39 +453,111 @@ export default function QuizBuilder() {
             <AnimatePresence>
                 {showResults && selectedQuiz && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
-                            <div className="p-6 border-b border-slate-100 flex justify-between items-start">
-                                <div>
-                                    <h2 className="text-xl font-bold text-slate-800">Quiz Results</h2>
-                                    <p className="text-sm text-slate-500">{selectedQuiz.title} — {results.length} submitted</p>
-                                </div>
-                                <button onClick={() => setShowResults(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={20} /></button>
-                            </div>
-                            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
-                                {results.length === 0 ? (
-                                    <p className="text-center text-slate-500 py-8">No submissions yet.</p>
-                                ) : (
-                                    results.map((sub: any, i: number) => {
-                                        const pct = Math.round((sub.score / sub.totalQuestions) * 100);
-                                        return (
-                                            <div key={sub.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-slate-400 text-sm font-medium w-6">#{i + 1}</span>
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh]">
+                            {selectedSubmission ? (
+                                // ── PER-STUDENT DETAIL VIEW ──────────────────────────
+                                (() => {
+                                    const quizQs: any[] = JSON.parse(selectedQuiz.questionsJSON || '[]');
+                                    let studentAnswers: number[] = [];
+                                    try { studentAnswers = JSON.parse(selectedSubmission.answersJSON || '[]'); } catch { studentAnswers = []; }
+                                    const pct = Math.round((selectedSubmission.score / selectedSubmission.totalQuestions) * 100);
+                                    return (
+                                        <>
+                                            <div className="p-6 border-b border-slate-100 flex justify-between items-start gap-3">
+                                                <div className="flex items-start gap-3">
+                                                    <button onClick={() => setSelectedSubmission(null)} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg mt-0.5">
+                                                        <ChevronLeft size={18} />
+                                                    </button>
                                                     <div>
-                                                        <p className="font-semibold text-slate-800">{sub.student?.name}</p>
-                                                        <p className="text-xs text-slate-500">ID: {sub.student?.admissionNumber || 'N/A'}</p>
+                                                        <h2 className="text-xl font-bold text-slate-800">{selectedSubmission.student?.name}</h2>
+                                                        <p className="text-sm text-slate-500">
+                                                            {selectedQuiz.title} · {selectedSubmission.score}/{selectedSubmission.totalQuestions} ({pct}%) · Submitted {new Date(selectedSubmission.submittedAt).toLocaleString()}
+                                                        </p>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${pct >= 70 ? 'bg-emerald-100 text-emerald-700' : pct >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-600'}`}>
-                                                        {sub.score}/{sub.totalQuestions} ({pct}%)
-                                                    </span>
-                                                </div>
+                                                <button onClick={() => { setShowResults(false); setSelectedSubmission(null); }} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={20} /></button>
                                             </div>
-                                        );
-                                    })
-                                )}
-                            </div>
+                                            <div className="p-6 overflow-y-auto space-y-4 flex-1">
+                                                {quizQs.map((q: any, i: number) => {
+                                                    const userPick = studentAnswers[i];
+                                                    const correct = q.correctIndex;
+                                                    const isCorrect = userPick === correct;
+                                                    const wasSkipped = userPick === undefined || userPick === null || userPick === -1;
+                                                    return (
+                                                        <div key={i} className={`rounded-xl border-2 p-4 ${isCorrect ? 'border-emerald-200 bg-emerald-50/40' : 'border-rose-200 bg-rose-50/40'}`}>
+                                                            <div className="flex items-start gap-3 mb-3">
+                                                                <span className={`w-7 h-7 shrink-0 rounded-lg flex items-center justify-center font-bold text-xs text-white ${isCorrect ? 'bg-emerald-500' : 'bg-rose-500'}`}>{i + 1}</span>
+                                                                <p className="font-semibold text-slate-800 flex-1 text-sm leading-relaxed">{q.question}</p>
+                                                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${isCorrect ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
+                                                                    {isCorrect ? 'Correct' : wasSkipped ? 'Skipped' : 'Wrong'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="space-y-1.5 ml-10">
+                                                                {q.options.map((opt: string, optIdx: number) => {
+                                                                    const isUserPick = userPick === optIdx;
+                                                                    const isCorrectOpt = correct === optIdx;
+                                                                    return (
+                                                                        <div key={optIdx} className={`flex items-center gap-2.5 p-2.5 rounded-lg border text-sm ${isCorrectOpt ? 'border-emerald-400 bg-emerald-100/60' : isUserPick ? 'border-rose-400 bg-rose-100/60' : 'border-slate-200 bg-white'}`}>
+                                                                            <span className={`w-6 h-6 rounded-md flex items-center justify-center font-bold text-[11px] ${isCorrectOpt ? 'bg-emerald-500 text-white' : isUserPick ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                                                                {String.fromCharCode(65 + optIdx)}
+                                                                            </span>
+                                                                            <span className="text-slate-700 flex-1">{opt}</span>
+                                                                            {isCorrectOpt && <span className="text-[10px] font-bold text-emerald-700 uppercase">Correct</span>}
+                                                                            {isUserPick && !isCorrectOpt && <span className="text-[10px] font-bold text-rose-700 uppercase">Picked</span>}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                                {wasSkipped && <p className="text-xs font-semibold text-rose-600 italic mt-1">Student did not answer this question.</p>}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </>
+                                    );
+                                })()
+                            ) : (
+                                // ── SUBMISSIONS LIST ──────────────────────────────────
+                                <>
+                                    <div className="p-6 border-b border-slate-100 flex justify-between items-start">
+                                        <div>
+                                            <h2 className="text-xl font-bold text-slate-800">Quiz Results</h2>
+                                            <p className="text-sm text-slate-500">{selectedQuiz.title} — {results.length} submitted</p>
+                                        </div>
+                                        <button onClick={() => setShowResults(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg"><X size={20} /></button>
+                                    </div>
+                                    <div className="p-6 overflow-y-auto space-y-3 flex-1">
+                                        {results.length === 0 ? (
+                                            <p className="text-center text-slate-500 py-8">No submissions yet.</p>
+                                        ) : (
+                                            results.map((sub: any, i: number) => {
+                                                const pct = Math.round((sub.score / sub.totalQuestions) * 100);
+                                                return (
+                                                    <button
+                                                        key={sub.id}
+                                                        onClick={() => setSelectedSubmission(sub)}
+                                                        className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-50 rounded-xl border border-slate-100 hover:border-indigo-200 transition-all text-left group"
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-slate-400 text-sm font-medium w-6">#{i + 1}</span>
+                                                            <div>
+                                                                <p className="font-semibold text-slate-800">{sub.student?.name}</p>
+                                                                <p className="text-xs text-slate-500">ID: {sub.student?.admissionNumber || 'N/A'}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className={`px-3 py-1 rounded-full text-sm font-bold ${pct >= 70 ? 'bg-emerald-100 text-emerald-700' : pct >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-600'}`}>
+                                                                {sub.score}/{sub.totalQuestions} ({pct}%)
+                                                            </span>
+                                                            <Eye size={16} className="text-slate-400 group-hover:text-indigo-600 transition-colors" />
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                </>
+                            )}
                         </motion.div>
                     </div>
                 )}

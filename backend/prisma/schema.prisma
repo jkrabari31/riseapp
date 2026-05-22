@@ -60,6 +60,7 @@ model TeacherProfile {
   assessments Assessment[] @relation("TeacherToAssessment")
 
   scheduledSessions ScheduleTrainer[]
+  readingMaterials  ReadingMaterial[] @relation("TrainerToReadingMaterial")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -124,6 +125,7 @@ model Student {
   fees                  Fee[]
   assessmentSubmissions AssessmentSubmission[]
   emiPlan               EmiPlan?
+  readingProgress       ReadingProgress[]
 
   @@index([classLevel, section])
   @@index([status])
@@ -454,6 +456,7 @@ model Specialization {
   assessments          Assessment[]
   assignments          Assignment[]
   feeStructure         FeeStructure?
+  readingMaterials     ReadingMaterial[]
 }
 
 model BatchSpecialization {
@@ -565,4 +568,41 @@ model EmiPlan {
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+model ReadingMaterial {
+  id               String   @id @default(uuid())
+  title            String
+  content          String   @db.Text
+  
+  // Link to the trainer who created it
+  authorId         String
+  author           TeacherProfile @relation("TrainerToReadingMaterial", fields: [authorId], references: [id])
+  
+  // Link to the specialization it's assigned to
+  specializationId String
+  specialization   Specialization @relation(fields: [specializationId], references: [id])
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  progressTracking ReadingProgress[]
+}
+
+model ReadingProgress {
+  id                 String   @id @default(uuid())
+  progressPercentage Int      @default(0) // 0 to 100
+  status             String   @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COMPLETED
+  lastReadAt         DateTime?
+  
+  materialId         String
+  material           ReadingMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  
+  studentId          String
+  student            Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([materialId, studentId])
 }

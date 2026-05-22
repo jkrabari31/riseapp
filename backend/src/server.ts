@@ -26,6 +26,7 @@ import schedulerRoutes from './routes/scheduler.routes';
 import ceoRoutes from './routes/ceo.routes';
 import exportRoutes from './routes/export.routes';
 import academicYearRoutes from './routes/academicYear.routes';
+import readingMaterialRoutes from './routes/readingMaterial.routes';
 import { authenticateToken } from './middleware/auth.middleware';
 
 // dotenv.config(); (moved to top)
@@ -62,6 +63,7 @@ app.use('/api/scheduler', schedulerRoutes);
 app.use('/api/ceo', authenticateToken, ceoRoutes);
 app.use('/api/export', authenticateToken, exportRoutes);
 app.use('/api/academic-years', authenticateToken, academicYearRoutes);
+app.use('/api/reading-materials', readingMaterialRoutes);
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'RISE Backend Running' });

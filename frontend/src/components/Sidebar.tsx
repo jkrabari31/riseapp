@@ -21,6 +21,7 @@ export default function Sidebar() {
             return [
                 { icon: FileSpreadsheet, label: 'Admissions', path: '/admissions' },
                 { icon: Users, label: 'Interns', path: '/students' },
+                { icon: BookOpen, label: 'Reading Materials', path: '/reading-materials' },
                 { icon: Calendar, label: 'Scheduler', path: '/scheduler' },
                 { icon: Calendar, label: 'Attendance', path: '/attendance' },
                 { icon: DollarSign, label: 'Fees', path: '/fees' },
@@ -35,6 +36,7 @@ export default function Sidebar() {
             { icon: Home, label: 'Dashboard', path: '/dashboard' },
             { icon: FileSpreadsheet, label: 'Admissions', path: '/admissions' },
             { icon: Users, label: 'Interns', path: '/students' },
+            { icon: BookOpen, label: 'Reading Materials', path: '/reading-materials' },
             { icon: Calendar, label: 'Scheduler', path: '/scheduler' },
             { icon: Calendar, label: 'Attendance', path: '/attendance' },
             { icon: DollarSign, label: 'Fees', path: '/fees' },
@@ -49,6 +51,7 @@ export default function Sidebar() {
                 { icon: Home, label: 'Dashboard', path: '/trainer-dashboard' },
                 { icon: Users, label: 'My Interns', path: '/my-interns' },
                 { icon: BookOpen, label: 'Assignments', path: '/assignments' },
+                { icon: BookOpen, label: 'Reading Materials', path: '/reading-materials' },
                 { icon: ClipboardList, label: 'Assessments', path: '/quiz-builder' },
                 { icon: Calendar, label: 'Scheduler', path: '/scheduler' },
                 { icon: Calendar, label: 'Attendance', path: '/attendance' },
@@ -61,6 +64,7 @@ export default function Sidebar() {
             return [
                 { icon: Home, label: 'Dashboard', path: '/intern-dashboard' },
                 { icon: BookOpen, label: 'My Assignments', path: '/my-assignments' },
+                { icon: BookOpen, label: 'Reading Materials', path: '/reading-materials' },
                 { icon: ClipboardList, label: 'Assessments', path: '/take-quiz' },
                 { icon: Calendar, label: 'My Schedule', path: '/scheduler' },
                 { icon: DollarSign, label: 'Fees', path: '/fees' },
