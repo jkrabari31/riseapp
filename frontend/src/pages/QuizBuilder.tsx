@@ -9,9 +9,6 @@ interface MCQQuestion {
     correctIndex: number;
 }
 
-const CLASSES = ['Level 1', 'Level 2', 'Level 3', 'Advanced'];
-const SECTIONS = ['Full Stack', 'Backend', 'Frontend', 'Mobile', 'DevOps'];
-
 export default function QuizBuilder() {
     const [activeTab, setActiveTab] = useState<'create' | 'my-quizzes'>('my-quizzes');
     const [subjects, setSubjects] = useState<any[]>([]);

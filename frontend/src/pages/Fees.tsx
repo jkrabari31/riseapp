@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search, CreditCard, Receipt, Settings, X, Zap, Users, Layers,
-    ChevronDown, CheckCircle, Smartphone, Building2, Banknote, Loader2, Bell, Mail, Send
+    ChevronDown, CheckCircle, Smartphone, Building2, Banknote, Loader2, Bell, Send
 } from 'lucide-react';
 import api from '../utils/api';
 import { useReactToPrint } from 'react-to-print';

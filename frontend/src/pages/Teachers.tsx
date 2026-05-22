@@ -6,14 +6,6 @@ import api from '../utils/api';
 import Select from 'react-select';
 import { useNavigate } from 'react-router-dom';
 
-// Static class options
-const CLASS_OPTIONS = [
-    { value: 'Level 1', label: 'Level 1' },
-    { value: 'Level 2', label: 'Level 2' },
-    { value: 'Level 3', label: 'Level 3' },
-    { value: 'Advanced', label: 'Advanced' },
-];
-
 export default function Teachers() {
     const navigate = useNavigate();
     const { user } = useAuthStore();

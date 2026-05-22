@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     BookOpen, Plus, Trash2, CheckCircle2, AlertCircle, Clock, 
-    BookOpenCheck, ExternalLink, Send, ArrowLeft, Bold, Italic, 
+    BookOpenCheck, Send, ArrowLeft, Bold, Italic,
     Underline, Heading1, Heading2, List, ListOrdered, Link, 
     RefreshCw, Sparkles, Sun, Moon, Maximize2, Minimize2, ZoomIn, ZoomOut
 } from 'lucide-react';
@@ -23,7 +23,6 @@ export default function ReadingMaterials() {
     
     // Create Material form
     const [title, setTitle] = useState('');
-    const [content, setContent] = useState('');
     const [specializationId, setSpecializationId] = useState('');
     const editorRef = useRef<HTMLDivElement>(null);
     const [publishing, setPublishing] = useState(false);
@@ -42,7 +41,7 @@ export default function ReadingMaterials() {
     const [fontScale, setFontScale] = useState(1.0); // Font scale zoom state
     const readerContainerRef = useRef<HTMLDivElement>(null);
     const readerModalRef = useRef<HTMLDivElement>(null);
-    const progressSyncRef = useRef<NodeJS.Timeout | null>(null);
+    const progressSyncRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleZoomIn = () => {
         setFontScale(prev => Math.min(1.6, prev + 0.15));
@@ -462,11 +461,11 @@ export default function ReadingMaterials() {
                                         </div>
 
                                         {/* Editor Div */}
-                                        <div 
+                                        <div
                                             ref={editorRef}
                                             contentEditable
                                             className="min-h-[300px] max-h-[500px] overflow-y-auto px-6 py-5 outline-none prose prose-indigo max-w-none text-slate-800"
-                                            placeholder="Write reading content details here. You can insert links to external documents, articles, references, etc."
+                                            data-placeholder="Write reading content details here. You can insert links to external documents, articles, references, etc."
                                         />
                                     </div>
                                     <p className="text-xs text-slate-400 mt-2 font-medium">Highlight text to apply formatting. Hyperlinks will open automatically in a new tab when students click them.</p>
