@@ -126,6 +126,66 @@ router.delete('/ceos/:id', authenticateToken, requireRole(['SUPER_ADMIN']), asyn
 });
 
 // ─────────────────────────────────────────────
+// Admission Officer Account Management
+// ─────────────────────────────────────────────
+
+// Create Admission Officer User (Super Admin Only)
+router.post('/admission-officer', authenticateToken, requireRole(['SUPER_ADMIN']), async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+        
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing) {
+            return res.status(400).json({ message: 'A user with this email already exists.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        const officer = await prisma.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                role: 'ADMISSION_OFFICER',
+                isActive: true
+            }
+        });
+        
+        res.json({ success: true, message: `Successfully created Admission Officer account for ${officer.name}` });
+    } catch (error) {
+        console.error('Create Admission Officer Error:', error);
+        res.status(500).json({ message: 'Error creating Admission Officer account' });
+    }
+});
+
+// Get all Admission Officer Users (Super Admin Only)
+router.get('/admission-officers', authenticateToken, requireRole(['SUPER_ADMIN']), async (req, res) => {
+    try {
+        const officers = await prisma.user.findMany({
+            where: { role: 'ADMISSION_OFFICER' },
+            select: { id: true, name: true, email: true, createdAt: true, isActive: true },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(officers);
+    } catch (error) {
+        console.error('Fetch Admission Officers Error:', error);
+        res.status(500).json({ message: 'Error fetching Admission Officer accounts' });
+    }
+});
+
+// Delete Admission Officer User (Super Admin Only)
+router.delete('/admission-officers/:id', authenticateToken, requireRole(['SUPER_ADMIN']), async (req, res) => {
+    try {
+        const id = req.params.id as string;
+        await prisma.user.delete({ where: { id } });
+        res.json({ success: true, message: 'Admission Officer account removed successfully' });
+    } catch (error) {
+        console.error('Delete Admission Officer Error:', error);
+        res.status(500).json({ message: 'Error deleting Admission Officer account' });
+    }
+});
+
+// ─────────────────────────────────────────────
 // Notification Configuration
 // ─────────────────────────────────────────────
 

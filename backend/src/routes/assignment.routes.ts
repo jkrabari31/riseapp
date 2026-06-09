@@ -29,7 +29,7 @@ router.post('/', authenticateToken, requireRole(['TRAINER', 'SUPER_ADMIN']), asy
                 classLevel: data.classLevel,
                 section: data.section,
                 batchId: data.batchId,
-                specializationId: data.specializationId,
+                specializationId: data.specializationId || null,
                 subjectId: data.subjectId,
                 teacherId: teacherId,
                 isReleased: !!data.isReleased
@@ -41,10 +41,12 @@ router.post('/', authenticateToken, requireRole(['TRAINER', 'SUPER_ADMIN']), asy
             const students = await prisma.student.findMany({
                 where: {
                     batchId: assignment.batchId,
-                    OR: [
-                        { specializationId: assignment.specializationId },
-                        { specializationId: null }
-                    ],
+                    ...(assignment.specializationId ? {
+                        OR: [
+                            { specializationId: assignment.specializationId },
+                            { specializationId: null }
+                        ]
+                    } : {}),
                     status: 'ACTIVE',
                     parentId: { not: null }
                 },
@@ -140,7 +142,7 @@ router.put('/:id', authenticateToken, requireRole(['TRAINER', 'SUPER_ADMIN']), a
                 classLevel: data.classLevel,
                 section: data.section,
                 batchId: data.batchId,
-                specializationId: data.specializationId,
+                specializationId: data.specializationId || null,
                 subjectId: data.subjectId
             }
         });
@@ -194,10 +196,12 @@ router.patch('/:id/toggle-release', authenticateToken, requireRole(['TRAINER', '
             const students = await prisma.student.findMany({
                 where: {
                     batchId: updated.batchId,
-                    OR: [
-                        { specializationId: updated.specializationId },
-                        { specializationId: null }
-                    ],
+                    ...(updated.specializationId ? {
+                        OR: [
+                            { specializationId: updated.specializationId },
+                            { specializationId: null }
+                        ]
+                    } : {}),
                     status: 'ACTIVE',
                     parentId: { not: null }
                 },

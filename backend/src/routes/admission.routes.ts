@@ -44,6 +44,7 @@ router.post('/apply', upload.single('photo'), async (req: any, res) => {
                 email: data.email,
                 parentsMobileNo: data.parentsMobileNo,
                 interestedCourse: data.interestedCourse,
+                interestedBatch: data.interestedBatch,
                 fatherOccupation: data.fatherOccupation,
                 cgpa: data.cgpa,
                 passingYear: data.passingYear,
@@ -148,6 +149,28 @@ router.post('/:id/approve', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMI
                 }
             }
 
+            // Resolve specializationId from interestedCourse (specialization name)
+            let specializationId = null;
+            if (request.interestedCourse) {
+                const spec = await (tx as any).specialization.findUnique({
+                    where: { name: request.interestedCourse }
+                });
+                if (spec) {
+                    specializationId = spec.id;
+                }
+            }
+
+            // Resolve batchId from interestedBatch (batch name)
+            let batchId = null;
+            if (request.interestedBatch) {
+                const batch = await (tx as any).batch.findUnique({
+                    where: { name: request.interestedBatch }
+                });
+                if (batch) {
+                    batchId = batch.id;
+                }
+            }
+
             // 3. Create the student
             const student = await tx.student.create({
                 data: {
@@ -163,6 +186,8 @@ router.post('/:id/approve', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMI
                     universityName: request.universityName,
                     interestedCourse: request.interestedCourse,
                     classLevel: request.interestedCourse, // Map course to classLevel for directory filtering
+                    specializationId,
+                    batchId,
                     parentsMobileNo: request.parentsMobileNo,
                     fatherOccupation: request.fatherOccupation,
                     photoUrl: request.photoUrl,

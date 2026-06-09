@@ -36,6 +36,8 @@ export default function Settings() {
     });
 
     const [ceos, setCeos] = useState<any[]>([]);
+    const [officers, setOfficers] = useState<any[]>([]);
+    const [officerData, setOfficerData] = useState({ name: '', email: '', password: '' });
 
     const [message, setMessage] = useState({ text: '', type: '' });
     const [isLoading, setIsLoading] = useState(false);
@@ -51,6 +53,7 @@ export default function Settings() {
             fetchYearsForDropdown();
         } else if (activeTab === 'ACCESS_ASSIGN') {
             fetchCeos();
+            fetchOfficers();
         } else if (activeTab === 'NOTIFICATIONS') {
             fetchNotificationConfig();
         }
@@ -62,6 +65,15 @@ export default function Settings() {
             setCeos(res.data);
         } catch (error) {
             console.error('Failed to load CEOs', error);
+        }
+    };
+
+    const fetchOfficers = async () => {
+        try {
+            const res = await api.get('/settings/admission-officers');
+            setOfficers(res.data);
+        } catch (error) {
+            console.error('Failed to load Admission Officers', error);
         }
     };
 
@@ -173,6 +185,22 @@ export default function Settings() {
             setTimeout(() => setMessage({ text: '', type: '' }), 5000);
         } catch (error: any) {
             setMessage({ text: error.response?.data?.message || 'Failed to create CEO user.', type: 'error' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleCreateOfficer = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        try {
+            const res = await api.post('/settings/admission-officer', officerData);
+            setMessage({ text: res.data.message || 'Admission Officer created successfully', type: 'success' });
+            setOfficerData({ name: '', email: '', password: '' });
+            fetchOfficers();
+            setTimeout(() => setMessage({ text: '', type: '' }), 5000);
+        } catch (error: any) {
+            setMessage({ text: error.response?.data?.message || 'Failed to create Admission Officer.', type: 'error' });
         } finally {
             setIsLoading(false);
         }
@@ -493,8 +521,8 @@ export default function Settings() {
                                     <Users size={20} />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-slate-800">Executive Access Assignment</h3>
-                                    <p className="text-sm text-slate-500">Create global dashboard access for the CEO.</p>
+                                <h3 className="text-lg font-bold text-slate-800">Role & Access Assignment</h3>
+                                    <p className="text-sm text-slate-500">Create accounts for CEO and Admission Officer roles.</p>
                                 </div>
                             </div>
 
@@ -584,6 +612,107 @@ export default function Settings() {
                                         No executive accounts currently assigned.
                                     </div>
                                 )}
+                            </div>
+
+                            {/* ── Admission Officer Section ── */}
+                            <div className="mt-12 pt-8 border-t-2 border-slate-200">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
+                                        <Users size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-slate-800">Admission Officers</h3>
+                                        <p className="text-sm text-slate-500">Manage telecalling and admission staff accounts.</p>
+                                    </div>
+                                </div>
+
+                                <form onSubmit={handleCreateOfficer} className="max-w-md space-y-5 bg-slate-50 p-6 rounded-2xl border border-slate-100 mb-8">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Full Name</label>
+                                        <input
+                                            required
+                                            type="text"
+                                            placeholder="e.g. Priya Sharma"
+                                            value={officerData.name}
+                                            onChange={(e) => setOfficerData({ ...officerData, name: e.target.value })}
+                                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Email Address</label>
+                                        <input
+                                            required
+                                            type="email"
+                                            placeholder="officer@rise.in"
+                                            value={officerData.email}
+                                            onChange={(e) => setOfficerData({ ...officerData, email: e.target.value.toLowerCase().trim() })}
+                                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Initial Password</label>
+                                        <input
+                                            required
+                                            type="text"
+                                            placeholder="Secure password"
+                                            value={officerData.password}
+                                            onChange={(e) => setOfficerData({ ...officerData, password: e.target.value })}
+                                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none font-mono"
+                                        />
+                                    </div>
+                                    
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className="mt-6 w-full py-3 bg-emerald-700 text-white rounded-xl font-black shadow-lg shadow-emerald-700/20 disabled:opacity-50 hover:bg-emerald-800 transition-colors"
+                                    >
+                                        {isLoading ? 'Processing...' : 'Create Admission Officer'}
+                                    </button>
+                                </form>
+
+                                <div className="max-w-md">
+                                    <h4 className="text-md font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                        <Users size={18} className="text-emerald-600" />
+                                        Active Admission Officers
+                                    </h4>
+                                    {officers.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {officers.map(officer => (
+                                                <div key={officer.id} className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm flex items-center justify-between hover:border-emerald-100 transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold">
+                                                            {officer.name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-bold text-slate-800 text-sm">{officer.name}</div>
+                                                            <div className="text-xs text-slate-500">{officer.email}</div>
+                                                        </div>
+                                                    </div>
+                                                    <button 
+                                                        onClick={async () => {
+                                                            if (confirm('Are you sure you want to remove this Admission Officer account?')) {
+                                                                try {
+                                                                    await api.delete(`/settings/admission-officers/${officer.id}`);
+                                                                    fetchOfficers();
+                                                                } catch (err) {
+                                                                    alert('Failed to remove Admission Officer');
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                                        title="Remove Account"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="p-6 text-center text-slate-500 bg-slate-50 border border-slate-100 border-dashed rounded-xl text-sm font-medium">
+                                            No admission officer accounts currently assigned.
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </motion.div>
                     )}

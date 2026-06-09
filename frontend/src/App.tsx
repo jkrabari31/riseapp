@@ -32,6 +32,8 @@ const SchedulerGrid = lazy(() => import('./pages/SchedulerGrid'));
 const ReportingDashboard = lazy(() => import('./pages/ReportingDashboard'));
 const ExportReports = lazy(() => import('./pages/ExportReports'));
 const ReadingMaterials = lazy(() => import('./pages/ReadingMaterials.tsx'));
+const LeadsDashboard = lazy(() => import('./pages/LeadsDashboard'));
+const LeadsList = lazy(() => import('./pages/LeadsList'));
 
 // Minimal loading fallback
 const PageLoader = () => (
@@ -60,6 +62,8 @@ function App() {
             <Route path="ceo-dashboard" element={<CEODashboard />} />
             <Route path="trainer-dashboard" element={<TrainerDashboard />} />
             <Route path="intern-dashboard" element={<InternDashboard />} />
+            <Route path="leads/dashboard" element={<LeadsDashboard />} />
+            <Route path="leads" element={<LeadsList />} />
             <Route path="admissions" element={<PendingAdmissions />} />
             <Route path="students" element={<Students />} />
             <Route path="student/:id" element={<InternProfile />} />

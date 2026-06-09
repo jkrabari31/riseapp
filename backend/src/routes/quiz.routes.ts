@@ -27,7 +27,7 @@ router.post('/', authenticateToken, requireRole(['TRAINER', 'SUPER_ADMIN']), asy
                 dueDate: new Date(data.dueDate),
                 timeLimit: parseInt(data.timeLimit) || 30,
                 batchId: data.batchId,
-                specializationId: data.specializationId,
+                specializationId: data.specializationId || null,
                 classLevel: data.classLevel,
                 section: data.section,
                 subjectId: data.subjectId,
@@ -41,10 +41,12 @@ router.post('/', authenticateToken, requireRole(['TRAINER', 'SUPER_ADMIN']), asy
             const students = await prisma.student.findMany({
                 where: {
                     batchId: assessment.batchId,
-                    OR: [
-                        { specializationId: assessment.specializationId },
-                        { specializationId: null }
-                    ],
+                    ...(assessment.specializationId ? {
+                        OR: [
+                            { specializationId: assessment.specializationId },
+                            { specializationId: null }
+                        ]
+                    } : {}),
                     status: 'ACTIVE',
                     parentId: { not: null }
                 },
@@ -106,7 +108,7 @@ router.put('/:id', authenticateToken, requireRole(['TRAINER', 'SUPER_ADMIN']), a
                 dueDate: new Date(data.dueDate),
                 timeLimit: parseInt(data.timeLimit) || 30,
                 batchId: data.batchId,
-                specializationId: data.specializationId,
+                specializationId: data.specializationId || null,
                 classLevel: data.classLevel,
                 section: data.section,
                 subjectId: data.subjectId,
@@ -131,7 +133,7 @@ router.get('/teacher/me', authenticateToken, requireRole(['TRAINER']), async (re
 
         const assessments = await (prisma as any).assessment.findMany({
             where: { teacherId: profile.id },
-            include: { subject: true },
+            include: { subject: true, batch: true, specialization: true },
             orderBy: { createdAt: 'desc' }
         });
         res.json(assessments);
@@ -349,10 +351,12 @@ router.patch('/:id/toggle-release', authenticateToken, requireRole(['TRAINER', '
             const students = await prisma.student.findMany({
                 where: {
                     batchId: updated.batchId,
-                    OR: [
-                        { specializationId: updated.specializationId },
-                        { specializationId: null }
-                    ],
+                    ...(updated.specializationId ? {
+                        OR: [
+                            { specializationId: updated.specializationId },
+                            { specializationId: null }
+                        ]
+                    } : {}),
                     status: 'ACTIVE',
                     parentId: { not: null }
                 },

@@ -27,21 +27,27 @@ import ceoRoutes from './routes/ceo.routes';
 import exportRoutes from './routes/export.routes';
 import academicYearRoutes from './routes/academicYear.routes';
 import readingMaterialRoutes from './routes/readingMaterial.routes';
+import leadsRoutes from './routes/leads.routes';
 import { authenticateToken } from './middleware/auth.middleware';
-
-// dotenv.config(); (moved to top)
 
 const app = express();
 export const prisma = new PrismaClient();
-const PORT = process.env.PORT || 5000;
 
-app.use(cors());
-app.use(compression()); // Gzip all responses — significant size reduction for JSON payloads
-app.use(express.json({ limit: '10mb' })); // Prevent accidental large payload processing
+// ✅ Fix 1: Read PORT from Azure environment
+const PORT = process.env.PORT || 8080;
+
+// ✅ Fix 2: Restrict CORS to your frontend domain
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true
+}));
+
+app.use(compression());
+app.use(express.json({ limit: '10mb' }));
 
 // Public Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/admissions', admissionRoutes); // This route has both public and private sub-routes
+app.use('/api/admissions', admissionRoutes);
 
 // Protected Routes
 app.use('/api/students', authenticateToken, studentRoutes);
@@ -59,19 +65,30 @@ app.use('/api/assignments', authenticateToken, assignmentRoutes);
 app.use('/api/quizzes', authenticateToken, quizRoutes);
 app.use('/api/ai', authenticateToken, aiRoutes);
 app.use('/api/scheduler', schedulerRoutes);
-
 app.use('/api/ceo', authenticateToken, ceoRoutes);
 app.use('/api/export', authenticateToken, exportRoutes);
 app.use('/api/academic-years', authenticateToken, academicYearRoutes);
 app.use('/api/reading-materials', readingMaterialRoutes);
+app.use('/api/leads', authenticateToken, leadsRoutes);
 
+// Health check — Azure uses this to verify app is running
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'RISE Backend Running' });
+  res.json({ status: 'ok', message: 'RISE Backend Running' });
 });
 
- 
-// Backend reloaded
+// ✅ Fix 3: Graceful shutdown for Prisma
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`AI Configuration Status: ${process.env.GEMINI_API_KEY ? 'AUTHENTICATED' : 'NOT CONFIGURED'}`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`AI Configuration: ${process.env.GEMINI_API_KEY ? 'AUTHENTICATED' : 'NOT CONFIGURED'}`);
 });

@@ -44,11 +44,11 @@ export default function AssignmentBuilder() {
             setBatches(batchRes.data);
             setSpecializations(specRes.data);
             
-            setForm(f => ({ 
-                ...f, 
+            setForm(f => ({
+                ...f,
                 subjectId: subjRes.data.length > 0 ? subjRes.data[0].id : '',
                 batchId: batchRes.data.length > 0 ? batchRes.data[0].id : '',
-                specializationId: specRes.data.length > 0 ? specRes.data[0].id : ''
+                specializationId: ''
             }));
         } catch (err) {
             console.error('Failed to fetch assignments:', err);
@@ -110,7 +110,7 @@ export default function AssignmentBuilder() {
             description: a.description || '',
             dueDate: new Date(a.dueDate).toISOString().split('T')[0],
             batchId: a.batchId || (batches.length > 0 ? batches[0].id : ''),
-            specializationId: a.specializationId || (specializations.length > 0 ? specializations[0].id : ''),
+            specializationId: a.specializationId || '',
             subjectId: a.subjectId
         });
         setQuestions(JSON.parse(a.questionsJSON).map((q: any, i: number) => ({
@@ -221,7 +221,8 @@ export default function AssignmentBuilder() {
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-sm font-semibold text-slate-700 mb-1">Specialization</label>
-                                        <select required value={form.specializationId} onChange={e => setForm({ ...form, specializationId: e.target.value })} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                                        <select value={form.specializationId} onChange={e => setForm({ ...form, specializationId: e.target.value })} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                                            <option value="">All Specializations</option>
                                             {specializations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                         </select>
                                     </div>

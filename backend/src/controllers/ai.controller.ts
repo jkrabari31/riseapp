@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 export const generateQuiz = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -7,18 +7,15 @@ export const generateQuiz = async (req: Request, res: Response): Promise<void> =
         console.log('--- AI Debug ---');
         console.log('API Key Found:', !!apiKey);
         console.log('API Key Length:', apiKey?.length || 0);
-        
+
         if (!apiKey || apiKey === "PASTE_YOUR_GEMINI_API_KEY_HERE") {
             console.error('AI Configuration Error: Missing or placeholder API key.');
-            res.status(500).json({ 
-                success: false, 
-                message: 'AI Service is not configured. Please add your actual GEMINI_API_KEY to the backend .env file and restart the server.' 
+            res.status(500).json({
+                success: false,
+                message: 'AI Service is not configured. Please add your actual GEMINI_API_KEY to the backend .env file and restart the server.'
             });
             return;
         }
-
-        const genAI = new GoogleGenerativeAI(apiKey as string);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const { topic, difficulty, count, subject, focusing, language } = req.body;
 
@@ -39,9 +36,9 @@ export const generateQuiz = async (req: Request, res: Response): Promise<void> =
             - Specific Focus: ${quizFocus}
             - Difficulty level: ${quizDifficulty}
             - Language: ${quizLang}
-            
+
             Please provide exactly ${numQuestions} questions. Ensure the questions are accurate and appropriate for students. All text must be in ${quizLang}.
-            
+
             Return the output STRICTLY as a JSON string with the following structure, and absolutely nothing else (do not wrap in markdown blocks like \`\`\`json):
             [
                 {
@@ -52,13 +49,31 @@ export const generateQuiz = async (req: Request, res: Response): Promise<void> =
             ]
         `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const rawText = response.text() || "[]";
+        const genAI = new GoogleGenAI({ apiKey });
+
+        const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        let response;
+        let lastError: unknown;
+        for (const modelName of models) {
+            try {
+                console.log(`Trying model: ${modelName}`);
+                response = await genAI.models.generateContent({ model: modelName, contents: prompt });
+                break;
+            } catch (err: any) {
+                lastError = err;
+                if (err?.status === 503 || err?.status === 429) {
+                    console.warn(`Model ${modelName} unavailable, trying next...`);
+                    continue;
+                }
+                throw err;
+            }
+        }
+        if (!response) throw lastError;
+
+        const rawText = response.text || '[]';
 
         let questions = [];
         try {
-            // Sometimes Gen AI wraps json in markdown formatting despite instructions
             console.log("Gemini Raw Text:", rawText);
             const cleanedText = rawText.replace(/```json\n?|\n?```/g, '').trim();
             questions = JSON.parse(cleanedText);

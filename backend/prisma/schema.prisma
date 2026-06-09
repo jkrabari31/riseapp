@@ -216,6 +216,7 @@ model AdmissionRequest {
   email           String 
   parentsMobileNo String?
   interestedCourse String?
+  interestedBatch  String?
   fatherOccupation String?
   cgpa            String?
   passingYear     String?
@@ -605,4 +606,38 @@ model ReadingProgress {
   updatedAt          DateTime @updatedAt
 
   @@unique([materialId, studentId])
+}
+
+model Lead {
+  id               String   @id @default(uuid())
+  firstName        String
+  lastName         String?
+  mobileNo         String
+  email            String?
+  education        String?
+  city             String?
+  fatherOccupation String?
+  collegeName      String?
+  cgpa             String?
+  interestedCourse String?
+  interestedBatch  String?
+  
+  status           String   @default("NEW") // NEW, INTERESTED, MAYBE, NOT_INTERESTED, ADMITTED
+  followUpDate     DateTime?
+  
+  remarks          LeadRemark[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([status])
+  @@index([followUpDate])
+}
+
+model LeadRemark {
+  id        String   @id @default(uuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  remark    String   @db.Text
+  createdAt DateTime @default(now())
 }

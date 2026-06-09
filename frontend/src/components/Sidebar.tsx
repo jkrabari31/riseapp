@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Users, User, Calendar, DollarSign, Settings, LogOut, FileSpreadsheet, BookOpen, ClipboardList, BarChart3, Download } from 'lucide-react';
+import { Home, Users, User, Calendar, DollarSign, Settings, LogOut, FileSpreadsheet, BookOpen, ClipboardList, BarChart3, Download, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
@@ -19,6 +19,7 @@ export default function Sidebar() {
     const getMenuItems = () => {
         if (userRole === 'ADMISSION_OFFICER') {
             return [
+                { icon: Phone, label: 'Telecalling', path: '/leads/dashboard' },
                 { icon: FileSpreadsheet, label: 'Admissions', path: '/admissions' },
                 { icon: Users, label: 'Interns', path: '/students' },
                 { icon: BookOpen, label: 'Reading Materials', path: '/reading-materials' },
@@ -34,6 +35,7 @@ export default function Sidebar() {
         // Base items for admin
         const items = [
             { icon: Home, label: 'Dashboard', path: '/dashboard' },
+            { icon: Phone, label: 'Telecalling', path: '/leads/dashboard' },
             { icon: FileSpreadsheet, label: 'Admissions', path: '/admissions' },
             { icon: Users, label: 'Interns', path: '/students' },
             { icon: BookOpen, label: 'Reading Materials', path: '/reading-materials' },
