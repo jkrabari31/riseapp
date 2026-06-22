@@ -25,8 +25,8 @@ export default function Login() {
         }
     }, [isAuthenticated, user, navigate]);
 
-    const [email, setEmail] = useState('admin@rise.in');
-    const [password, setPassword] = useState('password123');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 

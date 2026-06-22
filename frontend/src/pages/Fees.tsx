@@ -47,6 +47,7 @@ export default function Fees() {
     const [submitting, setSubmitting] = useState(false);
     const [razorpayLoading, setRazorpayLoading] = useState(false);
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
     // Receipt print state
     const [printReceiptData, setPrintReceiptData] = useState<any>(null);
@@ -205,7 +206,7 @@ export default function Fees() {
                 scopeId: emiForm.scopeId,
                 totalInstallments: emiForm.totalInstallments
             });
-            alert(res.data.message);
+            setSuccessMessage(res.data.message);
             setShowEmiModal(false);
             fetchData();
         } catch (err: any) {
@@ -249,7 +250,7 @@ export default function Fees() {
         e.preventDefault(); setSubmitting(true); setError('');
         try {
             await api.post('/fees/notify', notifyForm);
-            alert('Notification dispatched successfully!');
+            setSuccessMessage('Notification dispatched successfully!');
             setShowNotifyModal(false);
         } catch (err: any) {
             setError(err.response?.data?.message || 'Error sending notification');
@@ -920,6 +921,26 @@ export default function Fees() {
                                     </button>
                                 </div>
                             </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* ═══════════════════════════════════════════════
+                MODAL 7 — Success Message Modal
+            ═══════════════════════════════════════════════ */}
+            <AnimatePresence>
+                {successMessage && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden text-center p-8">
+                            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-5 shadow-inner">
+                                <CheckCircle size={32} />
+                            </div>
+                            <h2 className="text-xl font-bold text-slate-800 mb-2">Success!</h2>
+                            <p className="text-slate-600 mb-6 leading-relaxed">{successMessage}</p>
+                            <button onClick={() => setSuccessMessage('')} className="w-full px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-semibold transition-colors shadow-md shadow-emerald-600/20">
+                                Awesome
+                            </button>
                         </motion.div>
                     </div>
                 )}

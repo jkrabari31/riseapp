@@ -1,10 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Users, User, Calendar, DollarSign, Settings, LogOut, FileSpreadsheet, BookOpen, ClipboardList, BarChart3, Download, Phone } from 'lucide-react';
+import { Home, Users, User, Calendar, DollarSign, Settings, LogOut, FileSpreadsheet, BookOpen, ClipboardList, BarChart3, Download, Phone, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }: { onClose?: () => void }) {
     const navigate = useNavigate();
     const logout = useAuthStore((state) => state.logout);
     const userRole = useAuthStore((state) => state.user?.role);
@@ -84,13 +84,18 @@ export default function Sidebar() {
             animate={{ x: 0 }}
             className="w-64 bg-slate-900 border-r border-slate-700/50 flex flex-col h-screen sticky top-0"
         >
-            <div className="h-16 flex items-center px-6 border-b border-white/10">
+            <div className="h-16 flex items-center px-6 border-b border-white/10 relative">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center">
                         <span className="text-white font-bold text-xl leading-none">{initials}</span>
                     </div>
                     <span className="text-white font-bold text-xl tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">{instituteName}</span>
                 </div>
+                {onClose && (
+                    <button onClick={onClose} className="md:hidden absolute right-4 text-slate-400 hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors">
+                        <X size={20} />
+                    </button>
+                )}
             </div>
 
             <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto no-scrollbar">
@@ -98,6 +103,7 @@ export default function Sidebar() {
                     <NavLink
                         key={item.path}
                         to={item.path}
+                        onClick={onClose}
                         className={({ isActive }) =>
                             `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${isActive
                                 ? 'bg-indigo-500/10 text-indigo-400 font-medium'

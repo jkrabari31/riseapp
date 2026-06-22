@@ -216,8 +216,12 @@ router.post('/:id/approve', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMI
                     userName: result.student.firstName,
                     type: 'admission',
                     title: 'Admission Approved!',
-                    message: `Congratulations ${result.student.firstName}! Your admission application (${result.request.referenceNumber}) has been approved. Your admission number is ${result.student.admissionNumber}. You can now login with your email.`,
-                    priority: 'HIGH'
+                    message: `Congratulations ${result.student.firstName}! Your admission application (${result.request.referenceNumber}) has been approved. Your admission number is ${result.student.admissionNumber}. We are excited to welcome you to RISE!`,
+                    priority: 'HIGH',
+                    credentials: {
+                        username: result.student.email ?? undefined,
+                        password: 'password123'
+                    }
                 });
             } catch (err) {
                 console.error('Approval notification error:', err);

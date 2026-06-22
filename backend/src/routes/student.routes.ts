@@ -61,6 +61,7 @@ router.get('/parent/me', authenticateToken, requireRole(['INTERN']), async (req:
                 status: 'ACTIVE'
             },
             include: {
+                specialization: true,
                 attendances: {
                     where: { date: { gte: thirtyDaysAgo } },
                     orderBy: { date: 'desc' }

@@ -97,6 +97,53 @@ router.get('/class/:classLevel/:section', authenticateToken, async (req, res) =>
     }
 });
 
+// Get assignments for a child's batch & specialization (Intern)
+router.get('/intern/:batchId/:specializationId', authenticateToken, async (req, res) => {
+    try {
+        // Cast route params to string to satisfy Prisma type expectations
+        const { batchId: batchIdParam, specializationId: specializationIdParam } = req.params as { batchId: string; specializationId: string };
+        const batchId = batchIdParam;
+        const specializationId = specializationIdParam;
+        const assignments = await prisma.assignment.findMany({
+            where: { 
+                batchId,
+                OR: specializationId && specializationId !== 'all' ? [
+                    { specializationId: null },
+                    { specializationId: specializationId }
+                ] : [
+                    { specializationId: null }
+                ],
+                isReleased: true
+            },
+            include: { subject: true, teacher: { include: { user: { select: { name: true } } } }, batch: true, specialization: true },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(assignments);
+    } catch (error) {
+        console.error('Fetch Intern Assignments Error:', error);
+        res.status(500).json({ message: 'Error fetching assignments' });
+    }
+});
+
+router.get('/intern/:batchId', authenticateToken, async (req, res) => {
+    try {
+        const { batchId: rawBatchId } = req.params as { batchId: string }; const batchId = rawBatchId;
+        const assignments = await prisma.assignment.findMany({
+            where: { 
+                batchId,
+                specializationId: null,
+                isReleased: true
+            },
+            include: { subject: true, teacher: { include: { user: { select: { name: true } } } }, batch: true, specialization: true },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(assignments);
+    } catch (error) {
+        console.error('Fetch Intern Assignments Error:', error);
+        res.status(500).json({ message: 'Error fetching assignments' });
+    }
+});
+
 // Get assignments created by a specific teacher
 router.get('/teacher/me', authenticateToken, requireRole(['TRAINER']), async (req, res) => {
     try {

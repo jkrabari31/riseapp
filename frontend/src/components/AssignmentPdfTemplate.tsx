@@ -41,7 +41,7 @@ export default function AssignmentPdfTemplate({ assignment, student }: Assignmen
                 <h2 className="text-2xl font-black uppercase text-slate-800 tracking-wider underline decoration-2 underline-offset-4">{assignment.title}</h2>
                 <div className="flex justify-center gap-6 mt-3 text-sm font-bold text-slate-600 uppercase">
                     <span>Subject: <span className="text-slate-900 border-b border-slate-400 pb-0.5">{assignment.subject?.name}</span></span>
-                    <span>Class: <span className="text-slate-900 border-b border-slate-400 pb-0.5">{assignment.classLevel} - {assignment.section}</span></span>
+                    <span>Program: <span className="text-slate-900 border-b border-slate-400 pb-0.5">{assignment.specialization?.name || 'All Specializations'} ({assignment.batch?.name || 'No Batch'})</span></span>
                     <span>Total Marks: <span className="text-slate-900 border-b border-slate-400 pb-0.5">{questions.reduce((sum: number, q: any) => sum + Number(q.marks), 0)}</span></span>
                 </div>
             </div>

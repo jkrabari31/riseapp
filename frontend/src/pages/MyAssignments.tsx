@@ -109,7 +109,7 @@ export default function MyAssignments() {
     const fetchAssignments = async (child: any) => {
         setLoading(true);
         try {
-            const res = await api.get(`/assignments/class/${child.classLevel}/${child.section}`);
+            const res = await api.get(`/assignments/intern/${child.batchId}/${child.specializationId || 'all'}`);
             setAssignments(res.data);
         } catch (error) {
             console.error('Failed to fetch assignments', error);
@@ -152,7 +152,7 @@ export default function MyAssignments() {
                                 onClick={() => handleChildSelect(child)}
                                 className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${selectedChild?.id === child.id ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
-                                {child.name} ({child.classLevel})
+                                {child.name} ({child.specialization?.name || 'All Specializations'})
                             </button>
                         ))}
                     </div>
@@ -251,7 +251,7 @@ export default function MyAssignments() {
                                     </div>
                                     <div>
                                         <h2 className="text-lg font-black text-slate-800">{viewingAssignment.title}</h2>
-                                        <p className="text-xs text-slate-400 font-semibold">{viewingAssignment.subject?.name} · {viewingAssignment.classLevel}-{viewingAssignment.section}</p>
+                                        <p className="text-xs text-slate-400 font-semibold">{viewingAssignment.subject?.name} · {viewingAssignment.specialization?.name || 'All Specializations'} ({viewingAssignment.batch?.name || 'No Batch'})</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">

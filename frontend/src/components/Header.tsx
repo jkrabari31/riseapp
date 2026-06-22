@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Search, UserCircle, Loader2, CheckCircle, GraduationCap, User, AlertCircle, X } from 'lucide-react';
+import { Bell, Search, UserCircle, Loader2, CheckCircle, GraduationCap, User, AlertCircle, X, Menu } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
-export default function Header() {
+export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
     const navigate = useNavigate();
     const user = useAuthStore((state) => state.user);
 
@@ -141,8 +141,16 @@ export default function Header() {
                     </motion.div>
                 )}
             </AnimatePresence>
-            <header className="h-16 bg-white/70 backdrop-blur-md border-b border-slate-200/50 flex items-center justify-between px-6 transition-colors">
-                <div className="flex items-center gap-4 flex-1">
+            <header className="h-16 bg-white/70 backdrop-blur-md border-b border-slate-200/50 flex items-center justify-between px-4 md:px-6 transition-colors">
+                <div className="flex items-center gap-2 md:gap-4 flex-1">
+                    {onMenuClick && (
+                        <button 
+                            onClick={onMenuClick} 
+                            className="md:hidden p-2 text-slate-500 hover:text-slate-700 transition-colors rounded-lg hover:bg-slate-100"
+                        >
+                            <Menu size={24} />
+                        </button>
+                    )}
                     {user?.role !== 'INTERN' && (
                         <div className="relative w-96 hidden md:block" ref={searchRef}>
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
