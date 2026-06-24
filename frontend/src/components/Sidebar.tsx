@@ -44,6 +44,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
             { icon: DollarSign, label: 'Fees', path: '/fees' },
             { icon: User, label: 'Trainers', path: '/teachers' },
             { icon: BarChart3, label: 'Analytics', path: '/reports' },
+            { icon: FileSpreadsheet, label: 'Progress Reports', path: '/progress-reports' },
             { icon: Download, label: 'Data Export', path: '/export' },
             { icon: Settings, label: 'Settings', path: '/settings' },
         ];

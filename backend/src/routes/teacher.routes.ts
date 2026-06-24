@@ -61,6 +61,14 @@ router.get('/me', authenticateToken, requireRole(['TRAINER']), async (req: any, 
                     include: { subject: true }
                 },
                 scheduledSessions: {
+                    where: {
+                        schedule: {
+                            date: { gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+                        }
+                    },
+                    orderBy: {
+                        schedule: { date: 'asc' }
+                    },
                     include: {
                         schedule: {
                             include: {
@@ -100,6 +108,14 @@ router.get('/:id/details', authenticateToken, async (req, res) => {
                 subjects: true,
                 timetables: { include: { subject: true } },
                 scheduledSessions: {
+                    where: {
+                        schedule: {
+                            date: { gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+                        }
+                    },
+                    orderBy: {
+                        schedule: { date: 'asc' }
+                    },
                     include: {
                         schedule: {
                             include: {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bell, Search, UserCircle, Loader2, CheckCircle, GraduationCap, User, AlertCircle, X, Menu } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { useSettingsStore } from '../store/settingsStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
@@ -8,6 +9,7 @@ import api from '../utils/api';
 export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
     const navigate = useNavigate();
     const user = useAuthStore((state) => state.user);
+    const { batches, selectedBatchId, setSelectedBatchId, fetchBatches } = useSettingsStore();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<{ students: any[], teachers: any[] } | null>(null);
@@ -17,6 +19,9 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [selectedNotification, setSelectedNotification] = useState<any | null>(null);
+    
+    // Add state for Intern Name
+    const [internName, setInternName] = useState<string | null>(null);
 
     const searchRef = useRef<HTMLDivElement>(null);
     const notifRef = useRef<HTMLDivElement>(null);
@@ -41,6 +46,17 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
         startPolling();
         document.addEventListener('visibilitychange', handleVisibility);
 
+        // Fetch Intern Name if role is INTERN
+        if (user.role === 'INTERN') {
+            api.get('/students/parent/me/names')
+                .then(res => {
+                    if (res.data && res.data.length > 0) {
+                        setInternName(res.data[0].name);
+                    }
+                })
+                .catch(err => console.error("Failed to load intern name for header", err));
+        }
+
         return () => {
             clearInterval(interval);
             document.removeEventListener('visibilitychange', handleVisibility);
@@ -49,6 +65,8 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
 
     // Handle clicking outside to close dropdowns
     useEffect(() => {
+        fetchBatches(); // Fetch global batches on mount for the selector
+        
         const handleClickOutside = (event: MouseEvent) => {
             if (searchRef.current && !searchRef.current.contains(event.target as Node)) setShowSearch(false);
             if (notifRef.current && !notifRef.current.contains(event.target as Node)) setShowNotifications(false);
@@ -215,6 +233,21 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
                 </div>
 
                 <div className="flex items-center gap-6">
+                    {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMISSION_OFFICER' || user?.role === 'CEO') && (
+                        <div className="hidden lg:flex items-center gap-2 bg-indigo-50/50 border border-indigo-100 rounded-lg px-2 py-1">
+                            <span className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">Batch:</span>
+                            <select 
+                                value={selectedBatchId} 
+                                onChange={(e) => setSelectedBatchId(e.target.value)}
+                                className="bg-transparent text-sm font-bold text-indigo-900 outline-none cursor-pointer pr-4 border-none py-1"
+                            >
+                                <option value="ALL">All Batches</option>
+                                {batches.map(b => (
+                                    <option key={b.id} value={b.id}>{b.name} {b.isCurrent ? '(Active)' : ''}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                     <div className="relative" ref={notifRef}>
                         <button onClick={() => setShowNotifications(!showNotifications)} className="text-slate-500 hover:text-slate-700 relative transition-colors p-2 rounded-full hover:bg-slate-100">
                             <Bell size={20} />
@@ -293,7 +326,9 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
                             <UserCircle className="w-6 h-6 text-indigo-600" />
                         </div>
                         <div className="hidden sm:block">
-                            <p className="text-sm font-bold text-slate-700 leading-tight">{user?.name || 'Loading Account...'}</p>
+                            <p className="text-sm font-bold text-slate-700 leading-tight">
+                                {user?.role === 'INTERN' && internName ? internName : (user?.name || 'Loading Account...')}
+                            </p>
                             <p className="text-xs font-medium text-indigo-600 uppercase tracking-wider">{user?.role?.replace('_', ' ') || 'GUEST'}</p>
                         </div>
                     </div>

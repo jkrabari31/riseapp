@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { PieChart, Activity, TrendingUp, Users, Home, Clock, Calendar, X } from 'lucide-react';
 import api from '../utils/api';
+import { useSettingsStore } from '../store/settingsStore';
 
 export default function ReportingDashboard() {
     const [stats, setStats] = useState<any>(null);
@@ -9,8 +10,10 @@ export default function ReportingDashboard() {
     const [loading, setLoading] = useState(true);
     const [batches, setBatches] = useState<any[]>([]);
     
+    const { selectedBatchId } = useSettingsStore();
+    
     // Filters
-    const [selectedBatch, setSelectedBatch] = useState('');
+    const [selectedBatch, setSelectedBatch] = useState(selectedBatchId === 'ALL' ? '' : selectedBatchId);
     const [selectedMonth, setSelectedMonth] = useState(''); // 1-12
     const [weekStart, setWeekStart] = useState('');
 
@@ -31,10 +34,20 @@ export default function ReportingDashboard() {
         try {
             const res = await api.get('/scheduler/batches');
             setBatches(res.data);
+            if (res.data.length > 0 && !selectedBatch) {
+                setSelectedBatch(selectedBatchId !== 'ALL' ? selectedBatchId : res.data[0].id);
+            }
         } catch (error) {
             console.error('Error fetching metadata:', error);
         }
     };
+
+    // Sync with global selector
+    useEffect(() => {
+        if (selectedBatchId !== 'ALL' && selectedBatch !== selectedBatchId) {
+            setSelectedBatch(selectedBatchId);
+        }
+    }, [selectedBatchId]);
 
     const fetchReports = async () => {
         setLoading(true);

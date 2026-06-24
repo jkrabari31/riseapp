@@ -24,7 +24,7 @@ export const checkConflicts = async (date: Date, timeSlotId: string, roomId: str
             date,
             timeSlotId,
             roomId,
-            id: { not: excludeId }
+            ...(excludeId ? { id: { not: excludeId } } : {})
         }
     });
     if (roomConflict) return { type: 'ROOM', message: 'Room is already booked for this slot' };
@@ -36,7 +36,7 @@ export const checkConflicts = async (date: Date, timeSlotId: string, roomId: str
             schedule: {
                 date,
                 timeSlotId,
-                id: { not: excludeId }
+                ...(excludeId ? { id: { not: excludeId } } : {})
             }
         },
         include: { trainer: true }

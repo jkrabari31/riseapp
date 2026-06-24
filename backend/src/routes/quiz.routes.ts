@@ -36,11 +36,11 @@ router.post('/', authenticateToken, requireRole(['TRAINER', 'SUPER_ADMIN']), asy
             }
         });
 
-        // Notify students if released
         if (assessment.isReleased) {
             const students = await prisma.student.findMany({
                 where: {
                     batchId: assessment.batchId,
+                    batch: { isCurrent: true },
                     ...(assessment.specializationId ? {
                         OR: [
                             { specializationId: assessment.specializationId },
@@ -351,6 +351,7 @@ router.patch('/:id/toggle-release', authenticateToken, requireRole(['TRAINER', '
             const students = await prisma.student.findMany({
                 where: {
                     batchId: updated.batchId,
+                    batch: { isCurrent: true },
                     ...(updated.specializationId ? {
                         OR: [
                             { specializationId: updated.specializationId },

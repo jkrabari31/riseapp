@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Send, BookOpen, ClipboardList, Users, Star, X, Pencil, Sparkles, Loader2, Eye, ChevronLeft } from 'lucide-react';
 import api from '../utils/api';
+import { useSettingsStore } from '../store/settingsStore';
 
 interface MCQQuestion {
     question: string;
@@ -10,6 +11,7 @@ interface MCQQuestion {
 }
 
 export default function QuizBuilder() {
+    const { selectedBatchId, activeBatchId } = useSettingsStore();
     const [activeTab, setActiveTab] = useState<'create' | 'my-quizzes'>('my-quizzes');
     const [subjects, setSubjects] = useState<any[]>([]);
     const [quizzes, setQuizzes] = useState<any[]>([]);
@@ -134,7 +136,7 @@ export default function QuizBuilder() {
         setForm({
             title: quiz.title,
             description: quiz.description || '',
-            batchId: quiz.batchId || '',
+            batchId: quiz.batchId || (selectedBatchId === 'ALL' ? activeBatchId : selectedBatchId) || (batches.length > 0 ? batches[0].id : ''),
             specializationId: quiz.specializationId || '',
             classLevel: quiz.classLevel || 'Level 1',
             section: quiz.section || 'Full Stack',

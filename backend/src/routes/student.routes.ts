@@ -8,6 +8,27 @@ import { uploadToCloudinary } from '../utils/cloudinary';
 
 const router = Router();
 
+// Get students COUNT specific to a Teacher's assigned classes
+router.get('/my-students/count', authenticateToken, requireRole(['TRAINER']), async (req: any, res) => {
+    try {
+        const userId = req.user.id;
+        const profile = await prisma.teacherProfile.findUnique({ where: { userId } });
+        if (!profile) return res.status(404).json({ message: 'Teacher profile not found' });
+
+        const assignedClassesStr = profile.assignedClasses || '';
+        const classesArray = assignedClassesStr.split(',').map(c => c.trim()).filter(Boolean);
+
+        if (classesArray.length === 0) return res.json({ count: 0 });
+
+        const count = await prisma.student.count({
+            where: { status: 'ACTIVE', classLevel: { in: classesArray } }
+        });
+        res.json({ count });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching students count' });
+    }
+});
+
 // Get students specific to a Teacher's assigned classes
 router.get('/my-students', authenticateToken, requireRole(['TRAINER']), async (req: any, res) => {
     try {
@@ -44,6 +65,20 @@ router.get('/my-students', authenticateToken, requireRole(['TRAINER']), async (r
         res.json(students);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching students' });
+    }
+});
+// Get lightweight student names for header
+router.get('/parent/me/names', authenticateToken, requireRole(['INTERN']), async (req: any, res) => {
+    try {
+        const students = await prisma.student.findMany({
+            where: { parentId: req.user.id, status: 'ACTIVE' },
+            select: { id: true, name: true, photoUrl: true },
+            orderBy: { name: 'asc' }
+        });
+        res.json(students);
+    } catch (error) {
+        console.error('Error fetching parent student names:', error);
+        res.status(500).json({ message: 'Error fetching intern names' });
     }
 });
 
@@ -93,7 +128,10 @@ router.get('/parent/me', authenticateToken, requireRole(['INTERN']), async (req:
         });
 
         // Also fetch fee structures to compute due amounts
-        const structures = await prisma.feeStructure.findMany();
+        const specIds = [...new Set(students.map(s => s.specializationId).filter(Boolean))] as string[];
+        const structures = await prisma.feeStructure.findMany({
+            where: { specializationId: { in: specIds } }
+        });
         const structureMap = new Map(structures.map(s => [s.specializationId, s.totalAmount]));
 
         const processedStudents = students.map(student => {

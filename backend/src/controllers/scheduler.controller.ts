@@ -147,13 +147,16 @@ export const getSpecializations = async (req: Request, res: Response) => {
 
 export const getSchedules = async (req: Request, res: Response) => {
     try {
-        const { week } = req.query;
+        const { week, batchId } = req.query;
         let where: any = {};
         if (week) {
             const start = new Date(week as string);
             const end = new Date(start);
             end.setDate(start.getDate() + 7);
             where.date = { gte: start, lt: end };
+        }
+        if (batchId) {
+            where.batchId = batchId as string;
         }
         const schedules = await (prisma as any).trainingSchedule.findMany({
             where,
@@ -268,6 +271,30 @@ export const deleteBatch = async (req: Request, res: Response) => {
     }
 };
 
+export const setBatchCurrent = async (req: Request, res: Response) => {
+    try {
+        const batchId = String(req.params.id);
+        
+        // Use a transaction to ensure atomic update
+        await (prisma as any).$transaction(async (tx: any) => {
+            // Set all batches to isCurrent: false
+            await tx.batch.updateMany({
+                data: { isCurrent: false }
+            });
+            
+            // Set target batch to isCurrent: true
+            await tx.batch.update({
+                where: { id: batchId },
+                data: { isCurrent: true }
+            });
+        });
+        
+        res.json({ message: 'Batch set as active successfully' });
+    } catch (error: any) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
 export const createTimeSlot = async (req: Request, res: Response) => {
     try {
         const slot = await (prisma as any).timeSlot.create({ data: req.body });
@@ -281,6 +308,72 @@ export const deleteTimeSlot = async (req: Request, res: Response) => {
     try {
         await (prisma as any).timeSlot.delete({ where: { id: req.params.id } });
         res.json({ message: 'Time slot deleted' });
+    } catch (error: any) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+export const cloneDay = async (req: Request, res: Response) => {
+    try {
+        const { sourceDate, targetDates, overrideTrainerId, overrideBatchId, overrideRoomId } = req.body;
+        const user = (req as any).user;
+        
+        if (!await checkSchedulerAccess(user.id, user.role)) {
+            return res.status(403).json({ message: 'Access Denied: You do not have permission to manage schedules' });
+        }
+
+        const startOfDay = new Date(sourceDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(sourceDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        // Fetch source day schedules
+        const sourceSchedules = await (prisma as any).trainingSchedule.findMany({
+            where: {
+                date: {
+                    gte: startOfDay,
+                    lte: endOfDay
+                }
+            },
+            include: {
+                trainers: true,
+                specializations: true
+            }
+        });
+
+        if (sourceSchedules.length === 0) {
+            return res.status(404).json({ message: 'No schedules found on source date to copy' });
+        }
+
+        const newEntries: any[] = [];
+        
+        for (const tDateStr of targetDates) {
+            const tDate = new Date(tDateStr);
+            tDate.setHours(12, 0, 0, 0); // avoid timezone issues
+            for (const s of sourceSchedules) {
+                newEntries.push({
+                    date: tDate.toISOString().split('T')[0],
+                    monthNo: s.monthNo,
+                    type: s.type,
+                    focus: s.focus,
+                    topic: s.topic,
+                    mode: s.mode,
+                    isCommon: s.isCommon,
+                    externalTrainer: s.externalTrainer,
+                    batchId: overrideBatchId || s.batchId,
+                    roomId: overrideRoomId || s.roomId,
+                    timeSlotId: s.timeSlotId,
+                    trainerIds: overrideTrainerId ? [overrideTrainerId] : s.trainers.map((t: any) => t.trainerId),
+                    specializationIds: s.specializations.map((sp: any) => sp.specializationId)
+                });
+            }
+        }
+
+        const results = await Promise.all(
+            newEntries.map((entry: any) => schedulerService.createSchedule({ ...entry, createdById: user.id }))
+        );
+
+        res.status(201).json({ message: `Cloned ${sourceSchedules.length} schedules to ${targetDates.length} days`, results });
     } catch (error: any) {
         res.status(400).json({ message: error.message });
     }

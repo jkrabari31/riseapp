@@ -10,18 +10,20 @@ import {
 } from 'recharts';
 import api from '../utils/api';
 import { useAuthStore } from '../store/authStore';
+import { useSettingsStore } from '../store/settingsStore';
 
 const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
 
 export default function CEODashboard() {
     const user = useAuthStore((state) => state.user);
+    const { selectedBatchId } = useSettingsStore();
 
     const [batches, setBatches] = useState<any[]>([]);
     
     const [filters, setFilters] = useState({
         startDate: '',
         endDate: '',
-        batchId: ''
+        batchId: selectedBatchId === 'ALL' ? '' : (selectedBatchId || '')
     });
 
     const [metrics, setMetrics] = useState<any>(null);
@@ -35,6 +37,14 @@ export default function CEODashboard() {
     useEffect(() => {
         fetchMetrics();
     }, [filters]);
+
+    useEffect(() => {
+        if (selectedBatchId !== 'ALL' && selectedBatchId !== filters.batchId) {
+            setFilters(prev => ({ ...prev, batchId: selectedBatchId || '' }));
+        } else if (selectedBatchId === 'ALL' && filters.batchId !== '') {
+            setFilters(prev => ({ ...prev, batchId: '' }));
+        }
+    }, [selectedBatchId]);
 
     const fetchBatches = async () => {
         try {

@@ -8,6 +8,7 @@ import api from '../utils/api';
 import { useReactToPrint } from 'react-to-print';
 import FeeReceiptPdfTemplate from '../components/FeeReceiptPdfTemplate';
 import { useAuthStore } from '../store/authStore';
+import { useSettingsStore } from '../store/settingsStore';
 
 // ─── Razorpay global type ─────────────────────
 declare global {
@@ -16,6 +17,7 @@ declare global {
 
 export default function Fees() {
     const { user } = useAuthStore();
+    const { selectedBatchId, activeBatchId } = useSettingsStore();
 
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
@@ -269,10 +271,15 @@ export default function Fees() {
         setShowNotifyModal(true);
     };
 
-    const filteredStudents = students.filter(student =>
-        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.admissionNumber?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredStudents = students.filter(student => {
+        const matchesSearch = student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            student.admissionNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+            
+        const targetBatch = selectedBatchId === 'ALL' ? null : (selectedBatchId || activeBatchId);
+        const matchesBatch = targetBatch ? student.batchId === targetBatch : true;
+        
+        return matchesSearch && matchesBatch;
+    });
 
     // ── Payment mode label ──────────────────────────
     const paymentModeIcon = (mode: string) => {

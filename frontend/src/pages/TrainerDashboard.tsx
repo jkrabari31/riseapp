@@ -24,8 +24,8 @@ export default function TrainerDashboard() {
                 setProfile(profileRes.data);
 
                 // Fetch Students count quickly
-                const studentsRes = await api.get('/students/my-students');
-                setMyInternsCount(studentsRes.data.length);
+                const studentsRes = await api.get('/students/my-students/count');
+                setMyInternsCount(studentsRes.data.count);
 
             } catch (error) {
                 console.error("Error loading teacher data:", error);

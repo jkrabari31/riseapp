@@ -3,8 +3,10 @@ import { motion } from 'framer-motion';
 import { Users, Search, Download } from 'lucide-react';
 import api from '../utils/api';
 import * as XLSX from 'xlsx';
+import { useSettingsStore } from '../store/settingsStore';
 
 export default function MyInterns() {
+    const { selectedBatchId, activeBatchId } = useSettingsStore();
     const [students, setStudents] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
@@ -39,10 +41,15 @@ export default function MyInterns() {
         XLSX.writeFile(workbook, 'My_Interns_List.xlsx');
     };
 
-    const filteredStudents = students.filter(s =>
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredStudents = students.filter(s => {
+        const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            s.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase());
+            
+        const targetBatchId = selectedBatchId === 'ALL' ? null : (selectedBatchId || activeBatchId);
+        const matchesBatch = targetBatchId ? s.batchId === targetBatchId : true;
+        
+        return matchesSearch && matchesBatch;
+    });
 
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">

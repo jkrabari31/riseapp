@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Plus, Trash2, Save, X, FileText, Pencil } from 'lucide-react';
 import api from '../utils/api';
+import { useSettingsStore } from '../store/settingsStore';
 
 export default function AssignmentBuilder() {
+    const { selectedBatchId, activeBatchId } = useSettingsStore();
     const [assignments, setAssignments] = useState<any[]>([]);
     const [subjects, setSubjects] = useState<any[]>([]);
     const [batches, setBatches] = useState<any[]>([]);
@@ -47,7 +49,7 @@ export default function AssignmentBuilder() {
             setForm(f => ({
                 ...f,
                 subjectId: subjRes.data.length > 0 ? subjRes.data[0].id : '',
-                batchId: batchRes.data.length > 0 ? batchRes.data[0].id : '',
+                batchId: selectedBatchId === 'ALL' ? (activeBatchId || (batchRes.data.length > 0 ? batchRes.data[0].id : '')) : (selectedBatchId || activeBatchId || ''),
                 specializationId: ''
             }));
         } catch (err) {
@@ -109,7 +111,7 @@ export default function AssignmentBuilder() {
             title: a.title,
             description: a.description || '',
             dueDate: new Date(a.dueDate).toISOString().split('T')[0],
-            batchId: a.batchId || (batches.length > 0 ? batches[0].id : ''),
+            batchId: a.batchId || (selectedBatchId === 'ALL' ? activeBatchId : selectedBatchId) || (batches.length > 0 ? batches[0].id : ''),
             specializationId: a.specializationId || '',
             subjectId: a.subjectId
         });
@@ -157,7 +159,10 @@ export default function AssignmentBuilder() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {assignments.map(a => (
+                    {assignments.filter(a => {
+                        const targetBatchId = selectedBatchId === 'ALL' ? null : (selectedBatchId || activeBatchId);
+                        return targetBatchId ? a.batchId === targetBatchId : true;
+                    }).map(a => (
                         <div key={a.id} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition group">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex gap-2">

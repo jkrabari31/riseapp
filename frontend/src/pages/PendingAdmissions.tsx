@@ -4,8 +4,10 @@ import { CheckCircle, XCircle, Printer, Clock, Edit2, Save, X, Search, Trash2, A
 import api from '../utils/api';
 import AdmissionPdfTemplate from '../components/AdmissionPdfTemplate.tsx';
 import ConfirmModal from '../components/ConfirmModal';
+import { useSettingsStore } from '../store/settingsStore';
 
 export default function PendingAdmissions() {
+    const { selectedBatchId, activeBatchId, batches } = useSettingsStore();
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -96,7 +98,15 @@ export default function PendingAdmissions() {
             req.referenceNumber,
             req.status
         ].map(f => (f || '').toLowerCase());
-        return searchTerm === '' || searchFields.some(field => field.includes(searchTerm.toLowerCase()));
+        const matchesSearch = searchTerm === '' || searchFields.some(field => field.includes(searchTerm.toLowerCase()));
+
+        const targetBatchId = selectedBatchId === 'ALL' ? null : (selectedBatchId || activeBatchId);
+        const targetBatchName = targetBatchId ? batches.find(b => b.id === targetBatchId)?.name : null;
+        
+        // Match batch if specific batch is selected, otherwise allow all
+        const matchesBatch = targetBatchName ? req.interestedBatch === targetBatchName : true;
+
+        return matchesSearch && matchesBatch;
     });
 
     const sortedRequests = [...filteredRequests].sort((a, b) => {

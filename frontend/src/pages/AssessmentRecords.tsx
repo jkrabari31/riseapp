@@ -2,18 +2,37 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Download, SearchX } from 'lucide-react';
 import api from '../utils/api';
-
-const CLASSES = ['All', 'Level 1', 'Level 2', 'Level 3', 'Advanced'];
+import { useSettingsStore } from '../store/settingsStore';
 
 export default function AssessmentRecords() {
+    const { selectedBatchId } = useSettingsStore();
     const [assessments, setAssessments] = useState<any[]>([]);
+    const [batches, setBatches] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [classFilter, setClassFilter] = useState('All');
+    const [batchFilter, setBatchFilter] = useState(selectedBatchId === 'ALL' ? 'All' : selectedBatchId);
 
     useEffect(() => {
         fetchRecords();
+        fetchBatches();
     }, []);
+
+    useEffect(() => {
+        if (selectedBatchId !== 'ALL' && selectedBatchId !== batchFilter) {
+            setBatchFilter(selectedBatchId || 'All');
+        } else if (selectedBatchId === 'ALL' && batchFilter !== 'All') {
+            setBatchFilter('All');
+        }
+    }, [selectedBatchId]);
+
+    const fetchBatches = async () => {
+        try {
+            const res = await api.get('/scheduler/batches');
+            setBatches(res.data);
+        } catch (error) {
+            console.error('Failed to fetch batches:', error);
+        }
+    };
 
     const fetchRecords = async () => {
         try {
@@ -78,7 +97,8 @@ export default function AssessmentRecords() {
                     rollNo: sub.student?.admissionNumber || 'N/A',
                     score: sub.score,
                     totalQuestions: sub.totalQuestions,
-                    submittedAt: sub.submittedAt
+                    submittedAt: sub.submittedAt,
+                    batchId: assessment.batchId || sub.student?.batchId
                 });
             });
         }
@@ -86,11 +106,11 @@ export default function AssessmentRecords() {
 
     // Apply filtering
     const filteredData = flattenedData.filter(item => {
-        const matchesClass = classFilter === 'All' || item.classLevel === classFilter;
+        const matchesBatch = batchFilter === 'All' || item.batchId === batchFilter;
         const searchStr = `${item.assessmentTitle} ${item.studentName} ${item.subject} ${item.teacher}`.toLowerCase();
         const matchesSearch = searchTerm === '' || searchStr.includes(searchTerm.toLowerCase());
 
-        return matchesClass && matchesSearch;
+        return matchesBatch && matchesSearch;
     });
 
     return (
@@ -104,10 +124,13 @@ export default function AssessmentRecords() {
                 <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
                     <select
                         className="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                        value={classFilter}
-                        onChange={e => setClassFilter(e.target.value)}
+                        value={batchFilter}
+                        onChange={e => setBatchFilter(e.target.value)}
                     >
-                        {CLASSES.map(c => <option key={c} value={c}>{c === 'All' ? 'All Levels' : c}</option>)}
+                        <option value="All">All Batches</option>
+                        {batches.map(b => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
                     </select>
 
                     <div className="relative">

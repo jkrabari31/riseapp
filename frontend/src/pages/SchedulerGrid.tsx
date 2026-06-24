@@ -7,6 +7,7 @@ import {
 import api from '../utils/api';
 import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
 import { useAuthStore } from '../store/authStore';
+import { useSettingsStore } from '../store/settingsStore';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
@@ -26,10 +27,19 @@ export default function SchedulerGrid() {
     // Modals
     const [showAddModal, setShowAddModal] = useState(false);
     const [showBulkModal, setShowBulkModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [popupMsg, setPopupMsg] = useState<{ title: string, message: string, type: 'success' | 'error' } | null>(null);
     const [selectedCell, setSelectedCell] = useState<any>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
     const [copiedSession, setCopiedSession] = useState<any>(null);
+
+    // Bulk Form State
+    const [bulkFormData, setBulkFormData] = useState({
+        batchId: '',
+        roomId: '',
+        trainerId: ''
+    });
 
     // Form State
     const [formData, setFormData] = useState<any>({
@@ -55,6 +65,7 @@ export default function SchedulerGrid() {
     const isIntern = user?.role === 'INTERN';
 
     const canManage = isAdmin || (isTrainer && trainerProfile?.canEditTimetable);
+    const selectedBatchId = useSettingsStore(state => state.selectedBatchId);
 
     useEffect(() => {
         fetchMetadata();
@@ -62,7 +73,7 @@ export default function SchedulerGrid() {
 
     useEffect(() => {
         fetchSchedules();
-    }, [currentWeekStart, viewMode]);
+    }, [currentWeekStart, viewMode, selectedBatchId]);
 
     const fetchMetadata = async () => {
         try {
@@ -107,7 +118,10 @@ export default function SchedulerGrid() {
                     ? '/scheduler/trainer'
                     : '/scheduler';
 
-            const res = await api.get(`${endpoint}?week=${currentWeekStart.toISOString()}`);
+            const { selectedBatchId: sBatchId, activeBatchId: aBatchId } = useSettingsStore.getState();
+            const targetBatchId = sBatchId === 'ALL' ? '' : (sBatchId || aBatchId);
+
+            const res = await api.get(`${endpoint}?week=${currentWeekStart.toISOString()}${targetBatchId ? `&batchId=${targetBatchId}` : ''}`);
             setSchedules(res.data);
         } catch (error) {
             console.error('Error fetching schedules:', error);
@@ -188,24 +202,36 @@ export default function SchedulerGrid() {
         setShowAddModal(true);
     };
 
-    const handleDeleteSession = async () => {
-        if (!editingSessionId || !window.confirm('Are you sure you want to delete this session?')) return;
+    const handleDeleteSessionClick = () => {
+        if (!editingSessionId) return;
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDeleteSession = async () => {
+        if (!editingSessionId) return;
+        setLoading(true);
         try {
             console.log('DELETING SESSION:', editingSessionId);
             await api.delete(`/scheduler/delete/${editingSessionId}`);
+            setShowDeleteConfirm(false);
             setShowAddModal(false);
             fetchSchedules();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Error deleting session');
+            setPopupMsg({ title: 'Error', message: error.response?.data?.message || 'Error deleting session', type: 'error' });
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleSaveSession = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (loading) return;
+        setLoading(true);
         try {
             // Validation: Must have at least one trainer (either registered or external)
             if (formData.trainerIds.length === 0 && !formData.externalTrainer.trim()) {
-                alert('Please assign at least one trainer (registered or external).');
+                setPopupMsg({ title: 'Validation Error', message: 'Please assign at least one trainer (registered or external).', type: 'error' });
+                setLoading(false);
                 return;
             }
 
@@ -222,31 +248,37 @@ export default function SchedulerGrid() {
         } catch (error: any) {
             console.error('Error saving session:', error);
             const msg = error.response?.data?.message || error.message || 'Error saving session';
-            alert(`Failed to save: ${msg}`);
+            setPopupMsg({ title: 'Error', message: `Failed to save: ${msg}`, type: 'error' });
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleBulkCreate = async () => {
         setLoading(true);
         try {
-            if (!batches[0] || !rooms[0]) return alert('Please ensure Batches and Rooms are seeded first');
+            if (!bulkFormData.batchId || !bulkFormData.roomId || !bulkFormData.trainerId) {
+                setPopupMsg({ title: 'Validation Error', message: 'Please select a Batch, Room, and Trainer.', type: 'error' });
+                setLoading(false);
+                return;
+            }
 
             const newEntries: any[] = [];
             for (let i = 0; i < 5; i++) {
                 const date = format(addDays(currentWeekStart, i), 'yyyy-MM-dd');
                 timeSlots.slice(0, 4).forEach((slot, sIdx) => {
                     newEntries.push({
-                        batchId: batches[0].id,
+                        batchId: bulkFormData.batchId,
                         date,
                         timeSlotId: slot.id,
-                        roomId: rooms[0].id,
+                        roomId: bulkFormData.roomId,
                         monthNo: 1,
                         type: sIdx === 3 ? 'Communication' : 'Technical',
                         focus: 'Common Foundation',
                         topic: sIdx === 3 ? 'Presentation Skills' : 'Logic Building & Basics',
                         mode: 'ILT',
                         isCommon: true,
-                        trainerIds: trainers.slice(0, 1).filter(t => t.profile).map(t => t.profile.id),
+                        trainerIds: [bulkFormData.trainerId],
                         specializationIds: []
                     });
                 });
@@ -256,7 +288,39 @@ export default function SchedulerGrid() {
             setShowBulkModal(false);
             fetchSchedules();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Error bulk creating');
+            setPopupMsg({ title: 'Error', message: error.response?.data?.message || 'Error bulk creating', type: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCloneDay = async (sourceDate: Date, targetMode: 'nextDay' | 'week') => {
+        try {
+            setLoading(true);
+            const targetDates: string[] = [];
+            
+            if (targetMode === 'nextDay') {
+                targetDates.push(format(addDays(sourceDate, 1), 'yyyy-MM-dd'));
+            } else if (targetMode === 'week') {
+                for (let i = 0; i < 5; i++) {
+                    const d = addDays(currentWeekStart, i);
+                    if (!isSameDay(d, sourceDate)) {
+                        targetDates.push(format(d, 'yyyy-MM-dd'));
+                    }
+                }
+            }
+
+            if (targetDates.length === 0) return;
+
+            const res = await api.post('/scheduler/clone-day', {
+                sourceDate: format(sourceDate, 'yyyy-MM-dd'),
+                targetDates
+            });
+            
+            setPopupMsg({ title: 'Success', message: res.data.message || 'Schedule cloned successfully', type: 'success' });
+            fetchSchedules();
+        } catch (error: any) {
+            setPopupMsg({ title: 'Error', message: error.response?.data?.message || 'Error cloning schedule', type: 'error' });
         } finally {
             setLoading(false);
         }
@@ -322,12 +386,20 @@ export default function SchedulerGrid() {
                         <thead>
                             <tr className="bg-slate-50/50 border-b border-slate-100">
                                 <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-left border-r border-slate-100 sticky left-0 z-20 bg-slate-50 w-32">Slot</th>
-                                {DAYS.map((day, idx) => (
-                                    <th key={idx} className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">
+                                {DAYS.map((day, idx) => {
+                                    const currDate = addDays(currentWeekStart, idx);
+                                    return (
+                                    <th key={idx} className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center relative group">
                                         <div className="text-slate-800 text-sm mb-1">{day}</div>
-                                        <div className="font-medium">{format(addDays(currentWeekStart, idx), 'MMM dd')}</div>
+                                        <div className="font-medium">{format(currDate, 'MMM dd')}</div>
+                                        {canManage && (
+                                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                                                <button onClick={() => handleCloneDay(currDate, 'nextDay')} className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white" title="Copy to next day"><Copy size={12} /></button>
+                                                <button onClick={() => handleCloneDay(currDate, 'week')} className="p-1.5 bg-amber-100 text-amber-600 rounded-lg hover:bg-amber-500 hover:text-white" title="Copy to whole week"><ClipboardPaste size={12} /></button>
+                                            </div>
+                                        )}
                                     </th>
-                                ))}
+                                )})}
                             </tr>
                         </thead>
                         <tbody>
@@ -559,16 +631,16 @@ export default function SchedulerGrid() {
                                 <div className="p-8 border-t bg-slate-50/50 -mx-8 -mb-8 flex justify-between items-center shrink-0">
                                     <div>
                                         {isEditing && canManage && (
-                                            <button type="button" onClick={handleDeleteSession} className="text-rose-600 font-bold text-sm flex items-center gap-2 hover:bg-rose-50 px-4 py-2 rounded-xl transition-all">
+                                            <button type="button" onClick={handleDeleteSessionClick} className="text-rose-600 font-bold text-sm flex items-center gap-2 hover:bg-rose-50 px-4 py-2 rounded-xl transition-all">
                                                 <Trash2 size={16} /> Delete
                                             </button>
                                         )}
                                     </div>
                                     <div className="flex gap-3">
-                                        <button type="button" onClick={() => setShowAddModal(false)} className="px-6 py-3 text-slate-600 font-bold hover:bg-white rounded-2xl transition-all">Cancel</button>
+                                        <button type="button" onClick={() => setShowAddModal(false)} disabled={loading} className="px-6 py-3 text-slate-600 font-bold hover:bg-white rounded-2xl transition-all disabled:opacity-50">Cancel</button>
                                         {canManage && (
-                                            <button type="submit" className="px-10 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">
-                                                {isEditing ? 'Update Session' : 'Create Session'}
+                                            <button type="submit" disabled={loading} className="px-10 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all disabled:opacity-50">
+                                                {loading ? 'Saving...' : (isEditing ? 'Update Session' : 'Create Session')}
                                             </button>
                                         )}
                                     </div>
@@ -585,18 +657,82 @@ export default function SchedulerGrid() {
                                 <Calendar size={40} />
                             </div>
                             <h2 className="text-2xl font-bold text-slate-800 mb-2">Bulk Create Week?</h2>
-                            <p className="text-slate-500 text-sm mb-8">This will automatically generate a standard Month 1 common training schedule (4 slots per day) for the entire **Monday to Friday** week of <strong>{format(currentWeekStart, 'MMM dd')}</strong>.</p>
+                            <p className="text-slate-500 text-sm mb-6">This will automatically generate a standard Month 1 common training schedule (4 slots per day) for the entire week.</p>
+
+                            <div className="flex flex-col gap-4 mb-8 text-left">
+                                <div>
+                                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Select Batch</label>
+                                    <select className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm" value={bulkFormData.batchId} onChange={e => setBulkFormData({ ...bulkFormData, batchId: e.target.value })}>
+                                        <option value="">-- Choose Batch --</option>
+                                        {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Select Room</label>
+                                    <select className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm" value={bulkFormData.roomId} onChange={e => setBulkFormData({ ...bulkFormData, roomId: e.target.value })}>
+                                        <option value="">-- Choose Room --</option>
+                                        {rooms.map(r => <option key={r.id} value={r.id}>{r.name} (Cap: {r.capacity})</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Select Trainer</label>
+                                    <select className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm" value={bulkFormData.trainerId} onChange={e => setBulkFormData({ ...bulkFormData, trainerId: e.target.value })}>
+                                        <option value="">-- Choose Trainer --</option>
+                                        {trainers.map(t => t.profile && <option key={t.profile.id} value={t.profile.id}>{t.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
 
                             <div className="flex flex-col gap-3">
                                 <button
                                     onClick={handleBulkCreate}
-                                    disabled={loading}
+                                    disabled={loading || !bulkFormData.batchId || !bulkFormData.roomId || !bulkFormData.trainerId}
                                     className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all disabled:opacity-50"
                                 >
                                     {loading ? 'Generating...' : 'Confirm & Generate'}
                                 </button>
                                 <button onClick={() => setShowBulkModal(false)} className="w-full py-4 text-slate-400 font-bold hover:text-slate-600 transition-colors">Cancel</button>
                             </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {showDeleteConfirm && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden p-8 text-center">
+                            <div className="w-20 h-20 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <Trash2 size={40} />
+                            </div>
+                            <h2 className="text-2xl font-bold text-slate-800 mb-2">Delete Session?</h2>
+                            <p className="text-slate-500 text-sm mb-8">Are you sure you want to delete this schedule session? This action cannot be undone.</p>
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={confirmDeleteSession}
+                                    disabled={loading}
+                                    className="w-full py-4 bg-rose-600 text-white rounded-2xl font-bold shadow-xl shadow-rose-100 hover:bg-rose-700 transition-all disabled:opacity-50"
+                                >
+                                    {loading ? 'Deleting...' : 'Yes, Delete Session'}
+                                </button>
+                                <button onClick={() => setShowDeleteConfirm(false)} disabled={loading} className="w-full py-4 text-slate-400 font-bold hover:text-slate-600 transition-colors disabled:opacity-50">Cancel</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {popupMsg && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden p-8 text-center">
+                            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${popupMsg.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                                {popupMsg.type === 'success' ? <div className="text-4xl">✓</div> : <div className="text-4xl">!</div>}
+                            </div>
+                            <h2 className="text-2xl font-bold text-slate-800 mb-2">{popupMsg.title}</h2>
+                            <p className="text-slate-500 text-sm mb-8">{popupMsg.message}</p>
+                            <button
+                                onClick={() => setPopupMsg(null)}
+                                className={`w-full py-4 text-white rounded-2xl font-bold shadow-xl transition-all ${popupMsg.type === 'success' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-100'}`}
+                            >
+                                OK
+                            </button>
                         </motion.div>
                     </div>
                 )}

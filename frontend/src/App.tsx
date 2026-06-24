@@ -34,6 +34,7 @@ const ExportReports = lazy(() => import('./pages/ExportReports'));
 const ReadingMaterials = lazy(() => import('./pages/ReadingMaterials.tsx'));
 const LeadsDashboard = lazy(() => import('./pages/LeadsDashboard'));
 const LeadsList = lazy(() => import('./pages/LeadsList'));
+const ProgressReports = lazy(() => import('./pages/ProgressReports.tsx'));
 
 // Minimal loading fallback
 const PageLoader = () => (
@@ -85,6 +86,7 @@ function App() {
             <Route path="reports" element={<ReportingDashboard />} />
             <Route path="export" element={<ExportReports />} />
             <Route path="reading-materials" element={<ReadingMaterials />} />
+            <Route path="progress-reports" element={<ProgressReports />} />
             <Route path="settings" element={<Settings />} />
             <Route path="*" element={<Dashboard />} />
           </Route>

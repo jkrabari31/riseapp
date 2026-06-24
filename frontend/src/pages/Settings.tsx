@@ -41,6 +41,7 @@ export default function Settings() {
 
     const [message, setMessage] = useState({ text: '', type: '' });
     const [isLoading, setIsLoading] = useState(false);
+    const [confirmModal, setConfirmModal] = useState<any>({ isOpen: false, title: '', message: '', onConfirm: null, isDanger: false });
 
     // Notification Settings State
     const [notificationConfig, setNotificationConfig] = useState<any>(null);
@@ -589,15 +590,22 @@ export default function Settings() {
                                                     </div>
                                                 </div>
                                                 <button 
-                                                    onClick={async () => {
-                                                        if (confirm('Are you sure you want to remove this CEO account?')) {
-                                                            try {
-                                                                await api.delete(`/settings/ceos/${ceo.id}`);
-                                                                fetchCeos();
-                                                            } catch (err) {
-                                                                alert('Failed to remove CEO');
+                                                    onClick={() => {
+                                                        setConfirmModal({
+                                                            isOpen: true,
+                                                            title: 'Remove CEO Account',
+                                                            message: 'Are you sure you want to remove this CEO account?',
+                                                            isDanger: true,
+                                                            onConfirm: async () => {
+                                                                setConfirmModal({ isOpen: false });
+                                                                try {
+                                                                    await api.delete(`/settings/ceos/${ceo.id}`);
+                                                                    fetchCeos();
+                                                                } catch (err) {
+                                                                    alert('Failed to remove CEO');
+                                                                }
                                                             }
-                                                        }
+                                                        });
                                                     }}
                                                     className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                                                     title="Remove Account"
@@ -689,15 +697,22 @@ export default function Settings() {
                                                         </div>
                                                     </div>
                                                     <button 
-                                                        onClick={async () => {
-                                                            if (confirm('Are you sure you want to remove this Admission Officer account?')) {
-                                                                try {
-                                                                    await api.delete(`/settings/admission-officers/${officer.id}`);
-                                                                    fetchOfficers();
-                                                                } catch (err) {
-                                                                    alert('Failed to remove Admission Officer');
+                                                        onClick={() => {
+                                                            setConfirmModal({
+                                                                isOpen: true,
+                                                                title: 'Remove Admission Officer',
+                                                                message: 'Are you sure you want to remove this Admission Officer account?',
+                                                                isDanger: true,
+                                                                onConfirm: async () => {
+                                                                    setConfirmModal({ isOpen: false });
+                                                                    try {
+                                                                        await api.delete(`/settings/admission-officers/${officer.id}`);
+                                                                        fetchOfficers();
+                                                                    } catch (err) {
+                                                                        alert('Failed to remove Admission Officer');
+                                                                    }
                                                                 }
-                                                            }
+                                                            });
                                                         }}
                                                         className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                                                         title="Remove Account"
@@ -720,12 +735,21 @@ export default function Settings() {
                     {activeTab === 'YEARS' && <YearManager />}
                     
                     {activeTab === 'ROOMS' && <MetadataManager type="rooms" title="Classroom / Room" />}
-                    {activeTab === 'BATCHES' && <MetadataManager type="batches" title="Training Batch" />}
+                    {activeTab === 'BATCHES' && <BatchManager />}
                     {activeTab === 'SPECIALIZATIONS' && <MetadataManager type="specializations" title="Specialization" />}
                     {activeTab === 'SLOTS' && <MetadataManager type="slots" title="Time Slot" />}
 
                 </div>
             </div>
+
+            <ConfirmModal 
+                isOpen={confirmModal.isOpen} 
+                title={confirmModal.title} 
+                message={confirmModal.message} 
+                isDanger={confirmModal.isDanger} 
+                onConfirm={confirmModal.onConfirm} 
+                onCancel={() => setConfirmModal({ isOpen: false })} 
+            />
         </motion.div>
     );
 }
@@ -740,6 +764,7 @@ function YearManager() {
     const [deleteModal, setDeleteModal] = useState<{ show: boolean, id: string, name: string, confirmCount: number }>({
         show: false, id: '', name: '', confirmCount: 0
     });
+    const [confirmModal, setConfirmModal] = useState<any>({ isOpen: false, title: '', message: '', onConfirm: null, isDanger: false });
     const { fetchSettings } = useSettingsStore();
 
     useEffect(() => { fetchYears(); }, []);
@@ -767,12 +792,20 @@ function YearManager() {
     };
 
     const handleSetCurrent = async (id: string, name: string) => {
-        if (!confirm(`Are you sure you want to set "${name}" as active?`)) return;
-        try {
-            await api.patch(`/academic-years/${id}`, { isCurrent: true });
-            fetchYears();
-            fetchSettings();
-        } catch (error) { console.error('Error setting current year:', error); }
+        setConfirmModal({
+            isOpen: true,
+            title: 'Set Active Year',
+            message: `Are you sure you want to set "${name}" as the active academic year?`,
+            isDanger: false,
+            onConfirm: async () => {
+                setConfirmModal({ isOpen: false });
+                try {
+                    await api.patch(`/academic-years/${id}`, { isCurrent: true });
+                    fetchYears();
+                    fetchSettings();
+                } catch (error) { console.error('Error setting current year:', error); }
+            }
+        });
     };
 
     const handleDelete = async () => {
@@ -882,6 +915,143 @@ function YearManager() {
                     </div>
                 )}
             </AnimatePresence>
+
+            <ConfirmModal 
+                isOpen={confirmModal.isOpen} 
+                title={confirmModal.title} 
+                message={confirmModal.message} 
+                isDanger={confirmModal.isDanger} 
+                onConfirm={confirmModal.onConfirm} 
+                onCancel={() => setConfirmModal({ isOpen: false })} 
+            />
+        </motion.div>
+    );
+}
+
+function BatchManager() {
+    const [items, setItems] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [newItemName, setNewItemName] = useState('');
+    const [confirmModal, setConfirmModal] = useState<any>({ isOpen: false, title: '', message: '', onConfirm: null, isDanger: false });
+    const { fetchBatches } = useSettingsStore();
+
+    useEffect(() => {
+        fetchItems();
+    }, []);
+
+    const fetchItems = async () => {
+        setLoading(true);
+        try {
+            const res = await api.get('/scheduler/batches');
+            setItems(res.data);
+            fetchBatches(); // Sync global store
+        } catch (error) {
+            console.error('Failed to fetch batches', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await api.post('/scheduler/batches', { name: newItemName });
+            setNewItemName('');
+            fetchItems();
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Error creating batch');
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Batch',
+            message: 'Are you sure you want to delete this batch? All associated schedules will be lost.',
+            isDanger: true,
+            onConfirm: async () => {
+                setConfirmModal({ isOpen: false });
+                try {
+                    await api.delete(`/scheduler/batches/${id}`);
+                    fetchItems();
+                } catch (error) {
+                    alert('Error deleting batch');
+                }
+            }
+        });
+    };
+
+    const handleSetActive = async (id: string, name: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Set Active Batch',
+            message: `Set ${name} as the globally active batch? This will hide previous interns from daily views.`,
+            isDanger: false,
+            onConfirm: async () => {
+                setConfirmModal({ isOpen: false });
+                try {
+                    await api.put(`/scheduler/batches/${id}/current`);
+                    fetchItems();
+                } catch (error) {
+                    alert('Failed to set active batch');
+                }
+            }
+        });
+    };
+
+    if (loading) return <div className="p-8 text-center text-slate-500">Loading batches...</div>;
+
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b border-slate-100">Manage Training Batches</h3>
+            <form onSubmit={handleCreate} className="mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-100 flex flex-wrap gap-4 items-end">
+                <div className="flex-1 min-w-[200px]">
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Batch Name</label>
+                    <input required type="text" value={newItemName} onChange={e => setNewItemName(e.target.value)} placeholder="e.g. Batch 2024-A" className="w-full px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" />
+                </div>
+                <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors">
+                    Add Batch
+                </button>
+            </form>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {items.length === 0 && !loading && (
+                    <div className="col-span-full p-8 text-center text-slate-400 font-medium bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        No batches found. Create your first one above.
+                    </div>
+                )}
+                {items.map((b: any) => (
+                    <div key={b.id} className={`p-4 bg-white border rounded-2xl transition-all ${b.isCurrent ? 'border-indigo-400 shadow-md ring-2 ring-indigo-50' : 'border-slate-100 shadow-sm'}`}>
+                        <div className="flex justify-between items-start mb-4">
+                            <div className={`w-10 h-10 rounded-xl ${b.isCurrent ? 'bg-indigo-50' : 'bg-slate-50'} flex items-center justify-center`}>
+                                <Users className={b.isCurrent ? 'text-indigo-600' : 'text-slate-400'} size={20} />
+                            </div>
+                            {b.isCurrent && <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Active</span>}
+                        </div>
+                        <h4 className="font-bold text-slate-800 mb-1">{b.name}</h4>
+                        
+                        <div className="flex gap-2 mt-4 pt-2">
+                            {!b.isCurrent ? (
+                                <>
+                                    <button onClick={() => handleSetActive(b.id, b.name)} className="flex-1 py-2 rounded-lg bg-indigo-50 text-indigo-600 font-bold text-[10px] hover:bg-indigo-100 uppercase tracking-widest">Set Active</button>
+                                    <button onClick={() => handleDelete(b.id)} className="p-2 text-rose-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 size={16} /></button>
+                                </>
+                            ) : (
+                                <button className="flex-1 py-2 rounded-lg bg-slate-50 text-slate-400 font-bold text-[10px] uppercase tracking-widest" disabled>Currently Active</button>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <ConfirmModal 
+                isOpen={confirmModal.isOpen} 
+                title={confirmModal.title} 
+                message={confirmModal.message} 
+                isDanger={confirmModal.isDanger} 
+                onConfirm={confirmModal.onConfirm} 
+                onCancel={() => setConfirmModal({ isOpen: false })} 
+            />
         </motion.div>
     );
 }
@@ -893,6 +1063,7 @@ function MetadataManager({ type, title }: { type: string, title: string }) {
     const [newItemCapacity, setNewItemCapacity] = useState('');
     const [newItemStartTime, setNewItemStartTime] = useState('09:00 AM');
     const [newItemEndTime, setNewItemEndTime] = useState('10:00 AM');
+    const [confirmModal, setConfirmModal] = useState<any>({ isOpen: false, title: '', message: '', onConfirm: null, isDanger: false });
 
     useEffect(() => {
         fetchItems();
@@ -936,13 +1107,21 @@ function MetadataManager({ type, title }: { type: string, title: string }) {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure?')) return;
-        try {
-            await api.delete(`/scheduler/${type}/${id}`);
-            fetchItems();
-        } catch (error) {
-            alert('Error deleting item');
-        }
+        setConfirmModal({
+            isOpen: true,
+            title: `Delete ${title}`,
+            message: `Are you sure you want to delete this ${title.toLowerCase()}?`,
+            isDanger: true,
+            onConfirm: async () => {
+                setConfirmModal({ isOpen: false });
+                try {
+                    await api.delete(`/scheduler/${type}/${id}`);
+                    fetchItems();
+                } catch (error) {
+                    alert('Error deleting item');
+                }
+            }
+        });
     };
 
     return (
@@ -998,6 +1177,38 @@ function MetadataManager({ type, title }: { type: string, title: string }) {
                     </div>
                 ))}
             </div>
+
+            <ConfirmModal 
+                isOpen={confirmModal.isOpen} 
+                title={confirmModal.title} 
+                message={confirmModal.message} 
+                isDanger={confirmModal.isDanger} 
+                onConfirm={confirmModal.onConfirm} 
+                onCancel={() => setConfirmModal({ isOpen: false })} 
+            />
         </motion.div>
+    );
+}
+
+function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, isDanger = false }: any) {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl text-center">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 ${isDanger ? 'bg-rose-50 text-rose-500' : 'bg-indigo-50 text-indigo-500'}`}>
+                    <AlertTriangle size={32} />
+                </div>
+                <h2 className="text-lg font-bold text-slate-900 mb-2">{title}</h2>
+                <p className="text-sm text-slate-500 font-medium mb-8">{message}</p>
+                <div className="flex flex-col gap-3">
+                    <button onClick={onConfirm} className={`w-full py-3 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg ${isDanger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
+                        Confirm
+                    </button>
+                    <button onClick={onCancel} className="w-full py-3 bg-slate-50 text-slate-500 hover:bg-slate-100 rounded-xl font-bold text-xs uppercase tracking-widest">
+                        Cancel
+                    </button>
+                </div>
+            </motion.div>
+        </div>
     );
 }

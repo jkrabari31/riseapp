@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar as CalendarIcon, Save, UserCheck, AlertCircle, Download, X } from 'lucide-react';
 import api from '../utils/api';
 import * as XLSX from 'xlsx';
+import { useSettingsStore } from '../store/settingsStore';
 
 export default function Attendance() {
-    const [selectedBatch, setSelectedBatch] = useState('');
+    const { selectedBatchId } = useSettingsStore();
+    const [selectedBatch, setSelectedBatch] = useState(selectedBatchId === 'ALL' ? '' : selectedBatchId);
     const [batches, setBatches] = useState<any[]>([]);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [loading, setLoading] = useState(false);
@@ -23,18 +25,27 @@ export default function Attendance() {
     const [exportBatch, setExportBatch] = useState('All');
     const [exporting, setExporting] = useState(false);
 
-    useState(() => {
+    useEffect(() => {
         const fetchBatches = async () => {
             try {
                 const res = await api.get('/scheduler/batches');
                 setBatches(res.data);
-                if (res.data.length > 0) setSelectedBatch(res.data[0].id);
+                if (res.data.length > 0 && !selectedBatch) {
+                    setSelectedBatch(selectedBatchId !== 'ALL' ? selectedBatchId : res.data[0].id);
+                }
             } catch (err) {
                 console.error('Error fetching batches:', err);
             }
         };
         fetchBatches();
-    });
+    }, []);
+
+    // Sync with global selector
+    useEffect(() => {
+        if (selectedBatchId !== 'ALL' && selectedBatch !== selectedBatchId) {
+            setSelectedBatch(selectedBatchId);
+        }
+    }, [selectedBatchId]);
 
     const loadStudentsAndAttendance = async () => {
         if (!selectedBatch) return setError('Please select a batch');

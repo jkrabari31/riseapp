@@ -12,6 +12,7 @@ import attendanceRoutes from './routes/attendance.routes';
 import feeRoutes from './routes/fee.routes';
 import admissionRoutes from './routes/admission.routes';
 import teacherRoutes from './routes/teacher.routes';
+import progressRoutes from './routes/progress.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import announcementRoutes from './routes/announcement.routes';
 import subjectRoutes from './routes/subject.routes';
@@ -47,6 +48,7 @@ app.use(express.json({ limit: '10mb' }));
 
 // Public Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/progress', progressRoutes);
 app.use('/api/admissions', admissionRoutes);
 
 // Protected Routes

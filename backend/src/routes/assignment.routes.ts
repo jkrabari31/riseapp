@@ -41,6 +41,7 @@ router.post('/', authenticateToken, requireRole(['TRAINER', 'SUPER_ADMIN']), asy
             const students = await prisma.student.findMany({
                 where: {
                     batchId: assignment.batchId,
+                    batch: { isCurrent: true },
                     ...(assignment.specializationId ? {
                         OR: [
                             { specializationId: assignment.specializationId },
@@ -243,6 +244,7 @@ router.patch('/:id/toggle-release', authenticateToken, requireRole(['TRAINER', '
             const students = await prisma.student.findMany({
                 where: {
                     batchId: updated.batchId,
+                    batch: { isCurrent: true },
                     ...(updated.specializationId ? {
                         OR: [
                             { specializationId: updated.specializationId },

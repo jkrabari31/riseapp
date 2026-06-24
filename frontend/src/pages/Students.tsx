@@ -5,10 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import * as XLSX from 'xlsx';
 import { useAuthStore } from '../store/authStore';
+import { useSettingsStore } from '../store/settingsStore';
 
 export default function Students() {
     const navigate = useNavigate();
     const { user } = useAuthStore();
+    const { selectedBatchId, activeBatchId } = useSettingsStore();
 
     useEffect(() => {
         if (user && (user.role === 'INTERN' || user.role === 'TRAINER')) {
@@ -128,7 +130,11 @@ export default function Students() {
             student.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesClass = selectedClassFilter === 'All Programs' || student.classLevel === selectedClassFilter;
         const matchesStatus = selectedStatusFilter === 'ALL' || student.status === selectedStatusFilter;
-        return matchesSearch && matchesClass && matchesStatus;
+        
+        const targetBatch = selectedBatchId === 'ALL' ? null : (selectedBatchId || activeBatchId);
+        const matchesBatch = targetBatch ? student.batchId === targetBatch : true;
+
+        return matchesSearch && matchesClass && matchesStatus && matchesBatch;
     });
 
     const handleExport = () => {

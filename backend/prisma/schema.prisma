@@ -126,6 +126,7 @@ model Student {
   assessmentSubmissions AssessmentSubmission[]
   emiPlan               EmiPlan?
   readingProgress       ReadingProgress[]
+  progressData          StudentProgressData?
 
   @@index([classLevel, section])
   @@index([status])
@@ -429,6 +430,7 @@ model AssessmentSubmission {
 model Batch {
   id        String   @id @default(uuid())
   name      String   @unique // e.g., "Batch 2024-A"
+  isCurrent Boolean  @default(false)
   
   academicYearId String?
   academicYear   AcademicYear? @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
@@ -640,4 +642,18 @@ model LeadRemark {
   lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
   remark    String   @db.Text
   createdAt DateTime @default(now())
+}
+
+model StudentProgressData {
+  id                String   @id @default(uuid())
+  studentId         String   @unique
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  attendancePct     Float?   // Manually entered attendance percentage
+  
+  // JSON array of offline scores: [{ subjectName: "Communication", score: 85, maxScore: 100 }]
+  offlineScoresJSON String?  @db.Text 
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

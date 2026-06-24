@@ -395,7 +395,7 @@ export default function TakeQuiz() {
                         <div>
                             <div className="aspect-video bg-black rounded-2xl mb-8 overflow-hidden shadow-xl border-4 border-white relative group">
                                 {stream ? (
-                                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover grayscale focus:grayscale-0 transition-all duration-500" />
+                                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover transition-all duration-500" />
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 gap-2 p-4 text-center">
                                         <AlertTriangle size={32} className="text-amber-500" />
@@ -441,7 +441,7 @@ export default function TakeQuiz() {
         const progress = (answered / questions.length) * 100;
 
         return (
-            <div className="fixed inset-0 z-[200] bg-slate-50 flex flex-col overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+            <div className="fixed inset-0 h-[100dvh] w-screen z-[200] bg-slate-50 flex flex-col overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
 
                 {/* ── TOP BAR ──────────────────────────────────────────────── */}
                 <div className="bg-white border-b border-slate-200 px-6 md:px-10 flex items-center justify-between h-20 shrink-0 shadow-sm">
@@ -487,31 +487,7 @@ export default function TakeQuiz() {
                     </div>
                 </div>
 
-                {/* ── CAMERA MONITORING OVERLAY ────────────────────────────── */}
-                {!submitted && (
-                    <div className="fixed top-24 right-10 z-[210] w-48 aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-white group">
-                        {stream ? (
-                            <video 
-                                autoPlay 
-                                playsInline 
-                                muted 
-                                ref={(el) => { if(el && stream) el.srcObject = stream; }}
-                                className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" 
-                            />
-                        ) : cameraError ? (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 p-2 text-center">
-                                <AlertTriangle size={24} className="text-amber-500 mb-1" />
-                                <span className="text-[8px] font-black uppercase">Monitoring Disabled</span>
-                            </div>
-                        ) : (
-                            <div className="w-full h-full animate-pulse bg-slate-900" />
-                        )}
-                        <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-red-600 text-white text-[7px] font-black uppercase tracking-widest rounded shadow-sm">Proctor Active</div>
-                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
-                            <p className="text-[7px] font-bold text-white uppercase text-center tracking-tighter">Stay focused in the frame</p>
-                        </div>
-                    </div>
-                )}
+                {/* Camera overlay moved to options panel */}
 
                 {/* ── PROGRESS BAR ──────────────────────────────────────────── */}
                 <div className="h-1.5 bg-slate-100 shrink-0">
@@ -557,7 +533,33 @@ export default function TakeQuiz() {
                                 </div>
 
                                 {/* ── OPTIONS PANEL ───────────────────────────────── */}
-                                <div className="lg:w-96 xl:w-[480px] flex flex-col gap-4 justify-center">
+                                <div className="lg:w-96 xl:w-[480px] flex flex-col gap-4 justify-start">
+                                    {/* ── CAMERA MONITORING INLINE ────────────────────────────── */}
+                                    {!submitted && (
+                                        <div className="w-full max-w-[280px] mx-auto xl:max-w-xs aspect-video bg-black rounded-2xl overflow-hidden shadow-md border-4 border-white group relative mb-2">
+                                            {stream ? (
+                                                <video 
+                                                    autoPlay 
+                                                    playsInline 
+                                                    muted 
+                                                    ref={(el) => { if(el && stream) el.srcObject = stream; }}
+                                                    className="w-full h-full object-cover transition-all duration-700" 
+                                                />
+                                            ) : cameraError ? (
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 p-2 text-center">
+                                                    <AlertTriangle size={24} className="text-amber-500 mb-1" />
+                                                    <span className="text-[8px] font-black uppercase">Monitoring Disabled</span>
+                                                </div>
+                                            ) : (
+                                                <div className="w-full h-full animate-pulse bg-slate-900" />
+                                            )}
+                                            <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-red-600 text-white text-[7px] font-black uppercase tracking-widest rounded shadow-sm">Proctor Active</div>
+                                            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                                                <p className="text-[7px] font-bold text-white uppercase text-center tracking-tighter">Stay focused in the frame</p>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2 mb-1">
                                         Select one answer
                                     </p>
@@ -598,13 +600,13 @@ export default function TakeQuiz() {
                 </div>
 
                 {/* ── BOTTOM NAVIGATION ─────────────────────────────────────── */}
-                <div className="bg-white border-t border-slate-200 px-6 md:px-10 py-5 flex items-center justify-between shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
+                <div className="bg-white border-t border-slate-200 px-4 md:px-10 py-3 md:py-5 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
                     <button
                         onClick={() => setCurrentQ(prev => Math.max(0, prev - 1))}
                         disabled={currentQ === 0}
-                        className="flex items-center gap-2 px-6 py-3 text-slate-500 hover:bg-slate-100 rounded-xl font-bold transition-all disabled:opacity-0"
+                        className="flex items-center justify-center gap-2 px-4 md:px-6 py-3 text-slate-500 hover:bg-slate-100 rounded-xl font-bold transition-all disabled:opacity-0"
                     >
-                        <ChevronLeft size={20} /> Previous
+                        <ChevronLeft size={20} /> <span className="hidden md:inline">Previous</span>
                     </button>
 
                     {/* Mobile progress */}
@@ -615,21 +617,22 @@ export default function TakeQuiz() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto justify-end">
                         {answers.includes(null) && (
                             <button
                                 onClick={() => setShowPendingReview(true)}
-                                className="flex items-center gap-2 px-5 py-3 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl hover:bg-amber-100 font-black text-sm transition-all"
+                                className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-3 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl hover:bg-amber-100 font-black text-xs md:text-sm transition-all"
                             >
                                 <ListChecks size={18} />
-                                Review Pending ({answers.filter(a => a === null).length})
+                                <span className="hidden md:inline">Review Pending ({answers.filter(a => a === null).length})</span>
+                                <span className="inline md:hidden">Review</span>
                             </button>
                         )}
 
                         {currentQ < questions.length - 1 ? (
                             <button
                                 onClick={() => setCurrentQ(prev => prev + 1)}
-                                className="flex items-center gap-2 px-8 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-black shadow-lg shadow-indigo-600/20 transition-all"
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 md:px-8 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-black shadow-lg shadow-indigo-600/20 transition-all"
                             >
                                 {answers[currentQ] === null ? 'Skip' : 'Next'} <ChevronRight size={20} />
                             </button>
@@ -638,10 +641,10 @@ export default function TakeQuiz() {
                                 onClick={handleSubmit}
                                 disabled={submitting || answers.includes(null)}
                                 title={answers.includes(null) ? 'Answer all questions before submitting' : ''}
-                                className="flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-black disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 transition-all"
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 md:px-8 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-black disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/20 transition-all text-sm md:text-base"
                             >
                                 <CheckCircle size={20} />
-                                {submitting ? 'Submitting...' : 'Submit Assessment'}
+                                {submitting ? 'Submitting...' : 'Submit'}
                             </button>
                         )}
                     </div>

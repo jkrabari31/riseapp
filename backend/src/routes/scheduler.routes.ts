@@ -18,6 +18,7 @@ router.get('/batches', authenticateToken, schedulerController.getBatches);
 router.get('/specializations', schedulerController.getSpecializations);
 
 router.post('/bulk-create', authenticateToken, schedulerController.bulkCreateSchedule);
+router.post('/clone-day', authenticateToken, schedulerController.cloneDay);
 router.patch('/update-status/:id', authenticateToken, schedulerController.updateScheduleStatus);
 
 // Metadata CRUD (Admin/Admission Officer only)
@@ -31,6 +32,7 @@ router.delete('/specializations/:id', authenticateToken, requireRole(['SUPER_ADM
 
 router.post('/batches', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMISSION_OFFICER']), schedulerController.createBatch);
 router.put('/batches/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMISSION_OFFICER']), schedulerController.updateBatch);
+router.put('/batches/:id/current', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMISSION_OFFICER']), schedulerController.setBatchCurrent);
 router.delete('/batches/:id', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMISSION_OFFICER']), schedulerController.deleteBatch);
 
 router.post('/slots', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMISSION_OFFICER']), schedulerController.createTimeSlot);
