@@ -433,7 +433,6 @@ export default function ProgressReports() {
                 <ProgressReportPdfTemplate 
                     ref={printRef}
                     batchName={batches.find(b => b.id === selectedBatch)?.name || ''}
-                    institutionName="RISE"
                     students={getPdfData()}
                 />
             </div>

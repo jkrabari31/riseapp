@@ -19,13 +19,12 @@ interface StudentData {
 
 interface ProgressReportPdfTemplateProps {
     batchName: string;
-    institutionName: string;
     students: StudentData[];
     reportDate?: Date;
 }
 
 export const ProgressReportPdfTemplate = React.forwardRef<HTMLDivElement, ProgressReportPdfTemplateProps>(
-    ({ batchName, institutionName, students, reportDate = new Date() }, ref) => {
+    ({ batchName, students, reportDate = new Date() }, ref) => {
         return (
             <div ref={ref} className="bg-white print-container w-full max-w-[210mm] mx-auto">
                 <style type="text/css">
