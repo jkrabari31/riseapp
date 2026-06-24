@@ -41,7 +41,8 @@ export default function PendingAdmissions() {
 
     const handleApprove = async (id: string) => {
         try {
-            await api.post(`/admissions/${id}/approve`);
+            const targetBatchId = selectedBatchId === 'ALL' ? activeBatchId : selectedBatchId;
+            await api.post(`/admissions/${id}/approve`, { batchId: targetBatchId });
             fetchRequests();
         } catch (e) {
             console.error("Error approving", e);
@@ -104,7 +105,7 @@ export default function PendingAdmissions() {
         const targetBatchName = targetBatchId ? batches.find(b => b.id === targetBatchId)?.name : null;
         
         // Match batch if specific batch is selected, otherwise allow all
-        const matchesBatch = targetBatchName ? req.interestedBatch === targetBatchName : true;
+        const matchesBatch = targetBatchName ? (req.interestedBatch === targetBatchName || !req.interestedBatch) : true;
 
         return matchesSearch && matchesBatch;
     });

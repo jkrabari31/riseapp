@@ -115,6 +115,7 @@ router.get('/', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMISSION_OFFICE
 router.post('/:id/approve', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMISSION_OFFICER']), async (req, res) => {
     try {
         const { id } = req.params;
+        const { batchId: reqBatchId } = req.body;
 
         const request = await (prisma as any).admissionRequest.findUnique({ where: { id } });
 
@@ -161,8 +162,8 @@ router.post('/:id/approve', authenticateToken, requireRole(['SUPER_ADMIN', 'ADMI
             }
 
             // Resolve batchId from interestedBatch (batch name)
-            let batchId = null;
-            if (request.interestedBatch) {
+            let batchId = reqBatchId || null;
+            if (!batchId && request.interestedBatch) {
                 const batch = await (tx as any).batch.findUnique({
                     where: { name: request.interestedBatch }
                 });

@@ -396,7 +396,7 @@ export default function ProgressReports() {
                                 <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Include System Assessments</label>
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
                                     {assessments.length === 0 && <p className="text-sm text-slate-400 italic">No assessments available.</p>}
-                                    {assessments.map(a => (
+                                    {assessments.filter(a => !specializationFilter || !a.specializationId || a.specializationId === specializationFilter).map(a => (
                                         <label key={a.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors border border-slate-100">
                                             <input 
                                                 type="checkbox" 
